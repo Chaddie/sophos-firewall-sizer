@@ -2,35 +2,43 @@
 
 import Link from "next/link";
 import { signOut } from "next-auth/react";
+import { AppHeader, AppHeaderNavLink } from "@/components/brand/app-header";
 import { Button } from "@/components/ui/button";
 
-export function DashboardNav() {
+export function DashboardNav({ showAdmin = false }: { showAdmin?: boolean }) {
   return (
-    <header className="border-b bg-card">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="font-semibold tracking-tight">
-            Sophos Firewall Sizer
-          </Link>
-          <nav className="hidden gap-4 text-sm sm:flex">
-            <Link
-              href="/dashboard"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              Requests
-            </Link>
-            <Link
-              href="/dashboard/new"
-              className="text-muted-foreground hover:text-foreground"
+    <AppHeader
+      nav={
+        <nav className="hidden items-center gap-5 sm:flex">
+          <AppHeaderNavLink href="/dashboard">Requests</AppHeaderNavLink>
+          <AppHeaderNavLink href="/dashboard/new">New link</AppHeaderNavLink>
+          {showAdmin && (
+            <AppHeaderNavLink href="/dashboard/admin/catalog">
+              Catalog admin
+            </AppHeaderNavLink>
+          )}
+        </nav>
+      }
+      actions={
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/new" className="sm:hidden">
+            <Button
+              size="sm"
+              className="bg-white text-[var(--sophos-navy)] hover:bg-white/90"
             >
               New link
-            </Link>
-          </nav>
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
+            onClick={() => signOut({ callbackUrl: "/login" })}
+          >
+            Sign out
+          </Button>
         </div>
-        <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: "/login" })}>
-          Sign out
-        </Button>
-      </div>
-    </header>
+      }
+    />
   );
 }

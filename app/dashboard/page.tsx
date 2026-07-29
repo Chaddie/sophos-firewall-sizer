@@ -9,23 +9,33 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getDashboardRequests } from "@/lib/actions";
+import {
+  getDashboardRequests,
+  getSessionRole,
+} from "@/lib/actions";
+import { isSalesEngineer } from "@/lib/auth-utils";
 import { buildVanityUrl } from "@/lib/app-url";
 
 export default async function DashboardPage() {
-  const requests = await getDashboardRequests();
+  const [requests, role] = await Promise.all([
+    getDashboardRequests(),
+    getSessionRole(),
+  ]);
+  const showCreator = isSalesEngineer(role);
 
   return (
     <div className="flex min-h-full flex-col">
-      <DashboardNav />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+      <DashboardNav showAdmin={showCreator} />
+      <main className="mx-auto w-full max-w-6xl flex-1 bg-[var(--sophos-grey-1)] px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="font-heading text-3xl font-light text-[var(--sophos-navy)]">
               Sizing requests
             </h1>
             <p className="text-muted-foreground text-sm">
-              Create vanity links and view customer submissions.
+              {showCreator
+                ? "All sizing links across the team."
+                : "Your sizing links and customer submissions."}
             </p>
           </div>
           <Link href="/dashboard/new">
@@ -34,9 +44,11 @@ export default async function DashboardPage() {
         </div>
 
         {requests.length === 0 ? (
-          <Card>
+          <Card className="border-[var(--sophos-grey-2)] shadow-sm">
             <CardHeader>
-              <CardTitle>No sizing links yet</CardTitle>
+              <CardTitle className="font-heading text-2xl font-light">
+                No sizing links yet
+              </CardTitle>
               <CardDescription>
                 Create your first vanity URL to send to a customer.
               </CardDescription>
@@ -53,16 +65,20 @@ export default async function DashboardPage() {
               <Link
                 key={req.id}
                 href={`/dashboard/${req.id}`}
-                className="block rounded-xl border bg-card p-4 transition-colors hover:bg-muted/40"
+                className="block rounded-xl border border-[var(--sophos-grey-2)] bg-white p-4 shadow-sm transition-colors hover:border-[var(--sophos-blue)]/30"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="font-medium">
-                      {req.label ?? req.slug}
-                    </p>
+                    <p className="font-medium">{req.label}</p>
                     <p className="text-muted-foreground text-sm">
                       {buildVanityUrl(req.slug)}
                     </p>
+                    {showCreator && req.createdByName && (
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        Created by {req.createdByName}
+                        {req.createdByEmail ? ` (${req.createdByEmail})` : ""}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge

@@ -9,11 +9,13 @@
     "lint": "eslint",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "db:seed-catalog": "tsx scripts/seed-catalog.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "@neondatabase/serverless": "^1.1.0",
+    "@vercel/blob": "^2.6.1",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

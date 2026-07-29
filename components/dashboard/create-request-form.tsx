@@ -23,13 +23,15 @@ export function CreateRequestForm() {
   return (
     <form action={formAction} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="label">Customer / company label (optional)</Label>
+        <Label htmlFor="label">Customer / company label</Label>
         <Input
           id="label"
           name="label"
           value={label}
           onChange={(e) => handleLabelChange(e.target.value)}
           placeholder="Acme Corp"
+          required
+          minLength={2}
         />
         <p className="text-muted-foreground text-xs">
           Shown to the customer on the sizing form.

@@ -10,7 +10,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,10 +46,9 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="text-center">
-        <CardTitle>Presales sign in</CardTitle>
-        <CardDescription>
+    <Card className="w-full border-[var(--sophos-grey-2)] shadow-sm">
+      <CardHeader>
+        <CardDescription className="text-center">
           Sign in to create sizing links and view customer submissions.
         </CardDescription>
       </CardHeader>
@@ -86,7 +84,10 @@ export function LoginForm() {
           </Button>
         </form>
         <p className="text-muted-foreground mt-6 text-center text-xs">
-          <Link href="/" className="underline underline-offset-4">
+          <Link
+            href="/"
+            className="text-[var(--sophos-blue)] underline-offset-4 hover:underline"
+          >
             Back to home
           </Link>
         </p>

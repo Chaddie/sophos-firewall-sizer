@@ -1,0 +1,72 @@
+import { redirect } from "next/navigation";
+import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { FirewallCatalogTable } from "@/components/admin/firewall-catalog-table";
+import { SwitchCatalogTable } from "@/components/admin/switch-catalog-table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { getSessionRole } from "@/lib/actions";
+import { isSalesEngineer } from "@/lib/auth-utils";
+import { getFirewallCatalog, getSwitchCatalog } from "@/lib/sizing/catalog-store";
+
+export default async function CatalogAdminPage() {
+  const role = await getSessionRole();
+  if (!role) redirect("/login");
+  if (!isSalesEngineer(role)) redirect("/dashboard");
+
+  const [firewallModels, switchModels] = await Promise.all([
+    getFirewallCatalog(),
+    getSwitchCatalog(),
+  ]);
+
+  return (
+    <div className="flex min-h-full flex-col">
+      <DashboardNav showAdmin />
+      <main className="mx-auto w-full max-w-6xl flex-1 space-y-8 bg-[var(--sophos-grey-1)] px-4 py-8">
+        <div>
+          <h1 className="font-heading text-3xl font-light text-[var(--sophos-navy)]">
+            Catalog admin
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Edit the firewall and switch model specs the sizing engine uses,
+            including real order SKUs. Changes take effect immediately for new
+            submissions and don&apos;t require a deploy.
+          </p>
+        </div>
+
+        <Card className="border-[var(--sophos-grey-2)] shadow-sm">
+          <CardHeader>
+            <CardTitle className="font-heading text-xl font-light">
+              Firewall models
+            </CardTitle>
+            <CardDescription>
+              Throughput, VPN, and connection limits used to pick Minimum /
+              Recommended / Optimal firewall tiers.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FirewallCatalogTable models={firewallModels} />
+          </CardContent>
+        </Card>
+
+        <Card className="border-[var(--sophos-grey-2)] shadow-sm">
+          <CardHeader>
+            <CardTitle className="font-heading text-xl font-light">
+              Switch models
+            </CardTitle>
+            <CardDescription>
+              Port counts and PoE budgets used to pick Sophos Switch tiers.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SwitchCatalogTable models={switchModels} />
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+}

@@ -1,12 +1,17 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { sizingRequests, submissions } from "@/lib/db/schema";
-import { calculateRecommendation } from "@/lib/sizing/engine";
-import type { SizingAnswers } from "@/lib/sizing/types";
-import { createRequestSchema, sizingFormSchema } from "@/lib/validations";
-import { and, desc, eq } from "drizzle-orm";
+import { isSalesEngineer } from "@/lib/auth-utils";
+import { getDb } from "@/lib/db";
+import { demoStore, isDemoMode } from "@/lib/db/demo-store";
+import { ensureDemoSeed } from "@/lib/db/demo-seed";
+import { sizingRequests, submissions, users } from "@/lib/db/schema";
+import {
+  calculateSubmission,
+  inputToSubmissionAnswers,
+} from "@/lib/sizing/submission-engine";
+import { createRequestSchema, sizingSubmissionSchema } from "@/lib/validations";
+import { desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -20,7 +25,7 @@ export async function createSizingRequest(
   }
 
   const parsed = createRequestSchema.safeParse({
-    label: formData.get("label") || undefined,
+    label: formData.get("label"),
     slug: formData.get("slug"),
     expiresAt: formData.get("expiresAt") || undefined,
   });
@@ -31,7 +36,24 @@ export async function createSizingRequest(
 
   const { label, slug, expiresAt } = parsed.data;
 
-  const existing = await db
+  if (isDemoMode()) {
+    await ensureDemoSeed();
+    const existing = await demoStore.sizingRequests.findBySlug(slug);
+    if (existing) {
+      return { error: { slug: ["This URL slug is already in use"] } };
+    }
+    const request = await demoStore.sizingRequests.create({
+      slug,
+      label,
+      status: "pending",
+      createdById: session.user.id,
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+    });
+    revalidatePath("/dashboard");
+    redirect(`/dashboard/${request.id}`);
+  }
+
+  const existing = await getDb()
     .select({ id: sizingRequests.id })
     .from(sizingRequests)
     .where(eq(sizingRequests.slug, slug))
@@ -41,11 +63,11 @@ export async function createSizingRequest(
     return { error: { slug: ["This URL slug is already in use"] } };
   }
 
-  const [request] = await db
+  const [request] = await getDb()
     .insert(sizingRequests)
     .values({
       slug,
-      label: label || null,
+      label,
       createdById: session.user.id,
       expiresAt: expiresAt ? new Date(expiresAt) : null,
     })
@@ -55,32 +77,61 @@ export async function createSizingRequest(
   redirect(`/dashboard/${request.id}`);
 }
 
-export async function submitSizingForm(slug: string, formData: FormData) {
-  const raw = {
-    environment: formData.get("environment"),
-    totalWanBandwidthMbps: formData.get("totalWanBandwidthMbps"),
-    averageWanConsumptionMbps: formData.get("averageWanConsumptionMbps"),
-    wanGrowth3yrPercent: formData.get("wanGrowth3yrPercent"),
-    anticipatedPeakGrowthMbps: formData.get("anticipatedPeakGrowthMbps"),
-    anticipatedAverageGrowthMbps: formData.get("anticipatedAverageGrowthMbps"),
-    protection: formData.get("protection"),
-    vpnEnabled: formData.get("vpnEnabled") === "true",
-    ipsecTunnels: formData.get("ipsecTunnels") || undefined,
-    sslVpnTunnels: formData.get("sslVpnTunnels") || undefined,
-    peakVpnThroughputMbps: formData.get("peakVpnThroughputMbps") || undefined,
-    userAuthEnabled: formData.get("userAuthEnabled") === "true",
-    authUserCount: formData.get("authUserCount") || undefined,
-    haRequired: formData.get("haRequired") === "true",
-    customerName: formData.get("customerName") || undefined,
-    customerEmail: formData.get("customerEmail") || undefined,
-  };
+export async function submitSizingForm(slug: string, payloadJson: string) {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(payloadJson);
+  } catch {
+    return { error: { _form: ["Invalid submission payload"] } };
+  }
 
-  const parsed = sizingFormSchema.safeParse(raw);
+  const parsed = sizingSubmissionSchema.safeParse(raw);
   if (!parsed.success) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const [request] = await db
+  const answers = inputToSubmissionAnswers(parsed.data);
+
+  let companyLabel = slug;
+  if (isDemoMode()) {
+    await ensureDemoSeed();
+    const request = await demoStore.sizingRequests.findBySlug(slug);
+    if (request) companyLabel = request.label;
+  } else {
+    const [request] = await getDb()
+      .select({ label: sizingRequests.label })
+      .from(sizingRequests)
+      .where(eq(sizingRequests.slug, slug))
+      .limit(1);
+    if (request) companyLabel = request.label;
+  }
+
+  const recommendation = await calculateSubmission(answers, companyLabel);
+
+  if (isDemoMode()) {
+    await ensureDemoSeed();
+    const request = await demoStore.sizingRequests.findBySlug(slug);
+    if (!request) {
+      return { error: { _form: ["Sizing request not found"] } };
+    }
+    if (request.status === "submitted") {
+      return { error: { _form: ["This form has already been submitted"] } };
+    }
+    if (request.expiresAt && request.expiresAt < new Date()) {
+      return { error: { _form: ["This sizing link has expired"] } };
+    }
+    await demoStore.submissions.create({
+      requestId: request.id,
+      answers,
+      recommendation,
+    });
+    await demoStore.sizingRequests.updateStatus(request.id, "submitted");
+    revalidatePath(`/dashboard/${request.id}`);
+    revalidatePath("/dashboard");
+    return { success: true as const };
+  }
+
+  const [request] = await getDb()
     .select()
     .from(sizingRequests)
     .where(eq(sizingRequests.slug, slug))
@@ -98,20 +149,13 @@ export async function submitSizingForm(slug: string, formData: FormData) {
     return { error: { _form: ["This sizing link has expired"] } };
   }
 
-  const answers: SizingAnswers = {
-    ...parsed.data,
-    customerEmail: parsed.data.customerEmail || undefined,
-  };
-
-  const recommendation = calculateRecommendation(answers);
-
-  await db.insert(submissions).values({
+  await getDb().insert(submissions).values({
     requestId: request.id,
     answers,
     recommendation,
   });
 
-  await db
+  await getDb()
     .update(sizingRequests)
     .set({ status: "submitted" })
     .where(eq(sizingRequests.id, request.id));
@@ -121,11 +165,67 @@ export async function submitSizingForm(slug: string, formData: FormData) {
   return { success: true as const };
 }
 
-export async function getDashboardRequests() {
+export type DashboardRequestRow = {
+  id: string;
+  slug: string;
+  label: string;
+  status: "pending" | "submitted";
+  createdAt: Date;
+  expiresAt: Date | null;
+  createdByName?: string;
+  createdByEmail?: string;
+};
+
+async function enrichDemoRequests(
+  requests: Awaited<ReturnType<typeof demoStore.sizingRequests.listAll>>,
+  showCreator: boolean,
+): Promise<DashboardRequestRow[]> {
+  const rows: DashboardRequestRow[] = [];
+  for (const req of requests) {
+    const row: DashboardRequestRow = { ...req };
+    if (showCreator) {
+      const creator = await demoStore.users.findById(req.createdById);
+      row.createdByName = creator?.name;
+      row.createdByEmail = creator?.email;
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+export async function getDashboardRequests(): Promise<DashboardRequestRow[]> {
   const session = await auth();
   if (!session?.user?.id) return [];
 
-  return db
+  const showCreator = isSalesEngineer(session.user.role);
+
+  if (isDemoMode()) {
+    await ensureDemoSeed();
+    const requests = showCreator
+      ? await demoStore.sizingRequests.listAll()
+      : await demoStore.sizingRequests.listByUser(session.user.id);
+    return enrichDemoRequests(requests, showCreator);
+  }
+
+  if (showCreator) {
+    const rows = await getDb()
+      .select({
+        id: sizingRequests.id,
+        slug: sizingRequests.slug,
+        label: sizingRequests.label,
+        status: sizingRequests.status,
+        createdAt: sizingRequests.createdAt,
+        expiresAt: sizingRequests.expiresAt,
+        createdByName: users.name,
+        createdByEmail: users.email,
+      })
+      .from(sizingRequests)
+      .innerJoin(users, eq(sizingRequests.createdById, users.id))
+      .orderBy(desc(sizingRequests.createdAt));
+    return rows;
+  }
+
+  return getDb()
     .select({
       id: sizingRequests.id,
       slug: sizingRequests.slug,
@@ -143,30 +243,70 @@ export async function getRequestDetail(id: string) {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  const [request] = await db
+  const canViewAll = isSalesEngineer(session.user.role);
+
+  if (isDemoMode()) {
+    await ensureDemoSeed();
+    const request = await demoStore.sizingRequests.findById(id);
+    if (!request) return null;
+    if (!canViewAll && request.createdById !== session.user.id) return null;
+
+    const submission = await demoStore.submissions.findByRequestId(request.id);
+    let creator: { name: string; email: string } | null = null;
+    if (canViewAll) {
+      const user = await demoStore.users.findById(request.createdById);
+      if (user) creator = { name: user.name, email: user.email };
+    }
+    return { request, submission, creator };
+  }
+
+  const [request] = await getDb()
     .select()
     .from(sizingRequests)
-    .where(
-      and(
-        eq(sizingRequests.id, id),
-        eq(sizingRequests.createdById, session.user.id),
-      ),
-    )
+    .where(eq(sizingRequests.id, id))
     .limit(1);
 
   if (!request) return null;
+  if (!canViewAll && request.createdById !== session.user.id) return null;
 
-  const [submission] = await db
+  const [submission] = await getDb()
     .select()
     .from(submissions)
     .where(eq(submissions.requestId, request.id))
     .limit(1);
 
-  return { request, submission: submission ?? null };
+  let creator: { name: string; email: string } | null = null;
+  if (canViewAll) {
+    const [user] = await getDb()
+      .select({ name: users.name, email: users.email })
+      .from(users)
+      .where(eq(users.id, request.createdById))
+      .limit(1);
+    if (user) creator = user;
+  }
+
+  return {
+    request,
+    submission: submission ?? null,
+    creator,
+  };
 }
 
 export async function getPublicRequest(slug: string) {
-  const [request] = await db
+  if (isDemoMode()) {
+    await ensureDemoSeed();
+    const request = await demoStore.sizingRequests.findBySlug(slug);
+    if (!request) return null;
+    return {
+      id: request.id,
+      slug: request.slug,
+      label: request.label,
+      status: request.status,
+      expiresAt: request.expiresAt,
+    };
+  }
+
+  const [request] = await getDb()
     .select({
       id: sizingRequests.id,
       slug: sizingRequests.slug,
@@ -179,4 +319,9 @@ export async function getPublicRequest(slug: string) {
     .limit(1);
 
   return request ?? null;
+}
+
+export async function getSessionRole() {
+  const session = await auth();
+  return session?.user?.role ?? null;
 }

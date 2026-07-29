@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-lexend-exa);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,72 +49,52 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
+  /* Sophos brand tokens (from sophos.com design system) */
+  --sophos-blue: #2006f7;
+  --sophos-navy: #0a143a;
+  --sophos-oxford-blue: #001a47;
+  --sophos-ink: #01060e;
+  --sophos-gray: #464646;
+  --sophos-grey-1: #edf2f9;
+  --sophos-grey-2: #dbe9f4;
+  --sophos-grey-3: #bbcfde;
+  --sophos-grey-4: #6a889b;
+  --sophos-turquoise: #00f2b3;
+  --sophos-cyan: #00edff;
+  --sophos-red: #ea0022;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #ffffff;
+  --foreground: var(--sophos-oxford-blue);
+  --card: #ffffff;
+  --card-foreground: var(--sophos-oxford-blue);
+  --popover: #ffffff;
+  --popover-foreground: var(--sophos-oxford-blue);
+  --primary: var(--sophos-blue);
+  --primary-foreground: #ffffff;
+  --secondary: var(--sophos-grey-1);
+  --secondary-foreground: var(--sophos-navy);
+  --muted: var(--sophos-grey-1);
+  --muted-foreground: var(--sophos-grey-4);
+  --accent: var(--sophos-grey-1);
+  --accent-foreground: var(--sophos-navy);
+  --destructive: var(--sophos-red);
+  --border: var(--sophos-grey-2);
+  --input: var(--sophos-grey-2);
+  --ring: var(--sophos-blue);
+  --chart-1: var(--sophos-blue);
+  --chart-2: var(--sophos-turquoise);
+  --chart-3: var(--sophos-cyan);
+  --chart-4: var(--sophos-navy);
+  --chart-5: var(--sophos-grey-4);
+  --radius: 0.5rem;
+  --sidebar: var(--sophos-grey-1);
+  --sidebar-foreground: var(--sophos-oxford-blue);
+  --sidebar-primary: var(--sophos-blue);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--sophos-grey-2);
+  --sidebar-accent-foreground: var(--sophos-navy);
+  --sidebar-border: var(--sophos-grey-2);
+  --sidebar-ring: var(--sophos-blue);
 }
 
 @layer base {
@@ -123,8 +103,38 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "ss04" on;
   }
   html {
     @apply font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading), sans-serif;
+    font-weight: 300;
+    letter-spacing: -0.04em;
+    color: var(--sophos-navy);
+  }
+}
+
+@layer utilities {
+  .font-heading {
+    font-family: var(--font-heading), sans-serif;
+  }
+  .text-sophos-blue {
+    color: var(--sophos-blue);
+  }
+  .bg-sophos-navy {
+    background-color: var(--sophos-navy);
+  }
+  .bg-sophos-grey-1 {
+    background-color: var(--sophos-grey-1);
+  }
+  .border-sophos-grey-2 {
+    border-color: var(--sophos-grey-2);
   }
 }

@@ -1,10 +1,12 @@
 {
-  "version": "2026.1",
+  "version": "2026.2",
   "models": [
     {
       "id": "xgs-88w",
       "name": "XGS 88",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "Desktop",
       "threatProtectionMbps": 600,
       "xstreamSslMbps": 450,
@@ -12,12 +14,16 @@
       "maxIpsecTunnels": 250,
       "maxSslVpnTunnels": 125,
       "minUsers": 1,
-      "maxUsers": 10
+      "maxUsers": 10,
+      "maxConcurrentConnections": 1600000,
+      "sku": "XGS-88W"
     },
     {
       "id": "xgs-108w",
       "name": "XGS 108",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "Desktop",
       "threatProtectionMbps": 800,
       "xstreamSslMbps": 600,
@@ -25,12 +31,16 @@
       "maxIpsecTunnels": 500,
       "maxSslVpnTunnels": 250,
       "minUsers": 10,
-      "maxUsers": 30
+      "maxUsers": 30,
+      "maxConcurrentConnections": 4190000,
+      "sku": "XGS-108W"
     },
     {
       "id": "xgs-118w",
       "name": "XGS 118",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "Desktop",
       "threatProtectionMbps": 1100,
       "xstreamSslMbps": 750,
@@ -38,12 +48,16 @@
       "maxIpsecTunnels": 750,
       "maxSslVpnTunnels": 375,
       "minUsers": 30,
-      "maxUsers": 60
+      "maxUsers": 60,
+      "maxConcurrentConnections": 5500000,
+      "sku": "XGS-118W"
     },
     {
       "id": "xgs-128w",
       "name": "XGS 128",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "Desktop",
       "threatProtectionMbps": 1450,
       "xstreamSslMbps": 850,
@@ -51,12 +65,16 @@
       "maxIpsecTunnels": 1000,
       "maxSslVpnTunnels": 500,
       "minUsers": 60,
-      "maxUsers": 100
+      "maxUsers": 100,
+      "maxConcurrentConnections": 6000000,
+      "sku": "XGS-128W"
     },
     {
       "id": "xgs-138",
       "name": "XGS 138",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "Desktop",
       "threatProtectionMbps": 1700,
       "xstreamSslMbps": 950,
@@ -64,12 +82,16 @@
       "maxIpsecTunnels": 1250,
       "maxSslVpnTunnels": 625,
       "minUsers": 100,
-      "maxUsers": 150
+      "maxUsers": 150,
+      "maxConcurrentConnections": 6550000,
+      "sku": "XGS-138"
     },
     {
       "id": "xgs-2100",
       "name": "XGS 2100",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "1U",
       "threatProtectionMbps": 5000,
       "xstreamSslMbps": 1100,
@@ -77,12 +99,16 @@
       "maxIpsecTunnels": 5000,
       "maxSslVpnTunnels": 2500,
       "minUsers": 150,
-      "maxUsers": 500
+      "maxUsers": 500,
+      "maxConcurrentConnections": 6500000,
+      "sku": "XGS-2100"
     },
     {
       "id": "xgs-2300",
       "name": "XGS 2300",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "1U",
       "threatProtectionMbps": 5550,
       "xstreamSslMbps": 1450,
@@ -90,12 +116,16 @@
       "maxIpsecTunnels": 5000,
       "maxSslVpnTunnels": 2500,
       "minUsers": 500,
-      "maxUsers": 1000
+      "maxUsers": 1000,
+      "maxConcurrentConnections": 6500000,
+      "sku": "XGS-2300"
     },
     {
       "id": "xgs-3100",
       "name": "XGS 3100",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "1U",
       "threatProtectionMbps": 7400,
       "xstreamSslMbps": 2470,
@@ -103,12 +133,16 @@
       "maxIpsecTunnels": 6500,
       "maxSslVpnTunnels": 5000,
       "minUsers": 1000,
-      "maxUsers": 2500
+      "maxUsers": 2500,
+      "maxConcurrentConnections": 12260000,
+      "sku": "XGS-3100"
     },
     {
       "id": "xgs-3300",
       "name": "XGS 3300",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "1U",
       "threatProtectionMbps": 10000,
       "xstreamSslMbps": 3130,
@@ -116,12 +150,16 @@
       "maxIpsecTunnels": 6500,
       "maxSslVpnTunnels": 5000,
       "minUsers": 2500,
-      "maxUsers": 5000
+      "maxUsers": 5000,
+      "maxConcurrentConnections": 13700000,
+      "sku": "XGS-3300"
     },
     {
       "id": "xgs-4300",
       "name": "XGS 4300",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "1U Long",
       "threatProtectionMbps": 25200,
       "xstreamSslMbps": 8000,
@@ -129,12 +167,16 @@
       "maxIpsecTunnels": 8000,
       "maxSslVpnTunnels": 7500,
       "minUsers": 5000,
-      "maxUsers": 10000
+      "maxUsers": 10000,
+      "maxConcurrentConnections": 20000000,
+      "sku": "XGS-4300"
     },
     {
       "id": "xgs-4500",
       "name": "XGS 4500",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "1U Long",
       "threatProtectionMbps": 31850,
       "xstreamSslMbps": 10600,
@@ -142,12 +184,16 @@
       "maxIpsecTunnels": 8000,
       "maxSslVpnTunnels": 7500,
       "minUsers": 10000,
-      "maxUsers": 20000
+      "maxUsers": 20000,
+      "maxConcurrentConnections": 22000000,
+      "sku": "XGS-4500"
     },
     {
       "id": "xgs-5500",
       "name": "XGS 5500",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "2U",
       "threatProtectionMbps": 46000,
       "xstreamSslMbps": 13500,
@@ -155,12 +201,16 @@
       "maxIpsecTunnels": 10000,
       "maxSslVpnTunnels": 10000,
       "minUsers": 20000,
-      "maxUsers": 40000
+      "maxUsers": 40000,
+      "maxConcurrentConnections": 30000000,
+      "sku": "XGS-5500"
     },
     {
       "id": "xgs-6500",
       "name": "XGS 6500",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "2U",
       "threatProtectionMbps": 53500,
       "xstreamSslMbps": 16000,
@@ -168,12 +218,16 @@
       "maxIpsecTunnels": 10000,
       "maxSslVpnTunnels": 15000,
       "minUsers": 40000,
-      "maxUsers": 60000
+      "maxUsers": 60000,
+      "maxConcurrentConnections": 39900000,
+      "sku": "XGS-6500"
     },
     {
       "id": "xgs-7500",
       "name": "XGS 7500",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "2U",
       "threatProtectionMbps": 70000,
       "xstreamSslMbps": 19500,
@@ -181,12 +235,16 @@
       "maxIpsecTunnels": 12500,
       "maxSslVpnTunnels": 19000,
       "minUsers": 60000,
-      "maxUsers": 80000
+      "maxUsers": 80000,
+      "maxConcurrentConnections": 48000000,
+      "sku": "XGS-7500"
     },
     {
       "id": "xgs-8500",
       "name": "XGS 8500",
-      "environment": ["physical"],
+      "environment": [
+        "physical"
+      ],
       "formFactor": "2U",
       "threatProtectionMbps": 92500,
       "xstreamSslMbps": 24000,
@@ -194,12 +252,18 @@
       "maxIpsecTunnels": 15000,
       "maxSslVpnTunnels": 20000,
       "minUsers": 80000,
-      "maxUsers": 100000
+      "maxUsers": 100000,
+      "maxConcurrentConnections": 50000000,
+      "sku": "XGS-8500"
     },
     {
       "id": "sfv-2c4",
       "name": "SFv2C4",
-      "environment": ["virtual", "aws", "azure"],
+      "environment": [
+        "virtual",
+        "aws",
+        "azure"
+      ],
       "licenseSku": "SFv2C4",
       "vcpu": 2,
       "ramGb": 4,
@@ -211,12 +275,17 @@
       "minUsers": 1,
       "maxUsers": 50,
       "awsInstance": "m5.large / m7i.large",
-      "azureVmSize": "Standard_D2s_v4"
+      "azureVmSize": "Standard_D2s_v4",
+      "maxConcurrentConnections": 500000
     },
     {
       "id": "sfv-4c6",
       "name": "SFv4C6",
-      "environment": ["virtual", "aws", "azure"],
+      "environment": [
+        "virtual",
+        "aws",
+        "azure"
+      ],
       "licenseSku": "SFv4C6",
       "vcpu": 4,
       "ramGb": 6,
@@ -228,12 +297,17 @@
       "minUsers": 50,
       "maxUsers": 150,
       "awsInstance": "m5.xlarge / m7i.xlarge",
-      "azureVmSize": "Standard_D4s_v4"
+      "azureVmSize": "Standard_D4s_v4",
+      "maxConcurrentConnections": 1500000
     },
     {
       "id": "sfv-6c8",
       "name": "SFv6C8",
-      "environment": ["virtual", "aws", "azure"],
+      "environment": [
+        "virtual",
+        "aws",
+        "azure"
+      ],
       "licenseSku": "SFv6C8",
       "vcpu": 6,
       "ramGb": 8,
@@ -245,12 +319,17 @@
       "minUsers": 150,
       "maxUsers": 400,
       "awsInstance": "m5.2xlarge (partial)",
-      "azureVmSize": "Standard_D8s_v4 (partial)"
+      "azureVmSize": "Standard_D8s_v4 (partial)",
+      "maxConcurrentConnections": 3000000
     },
     {
       "id": "sfv-8c16",
       "name": "SFv8C16",
-      "environment": ["virtual", "aws", "azure"],
+      "environment": [
+        "virtual",
+        "aws",
+        "azure"
+      ],
       "licenseSku": "SFv8C16",
       "vcpu": 8,
       "ramGb": 16,
@@ -262,12 +341,17 @@
       "minUsers": 400,
       "maxUsers": 1000,
       "awsInstance": "m5.2xlarge / m7i.2xlarge",
-      "azureVmSize": "Standard_D8s_v4"
+      "azureVmSize": "Standard_D8s_v4",
+      "maxConcurrentConnections": 5000000
     },
     {
       "id": "sfv-16c24",
       "name": "SFv16C24",
-      "environment": ["virtual", "aws", "azure"],
+      "environment": [
+        "virtual",
+        "aws",
+        "azure"
+      ],
       "licenseSku": "SFv16C24",
       "vcpu": 16,
       "ramGb": 24,
@@ -279,12 +363,17 @@
       "minUsers": 1000,
       "maxUsers": 5000,
       "awsInstance": "m7i.4xlarge / c5.4xlarge",
-      "azureVmSize": "Standard_D16s_v4"
+      "azureVmSize": "Standard_D16s_v4",
+      "maxConcurrentConnections": 12000000
     },
     {
       "id": "sfv-unl",
       "name": "SFvUNL",
-      "environment": ["virtual", "aws", "azure"],
+      "environment": [
+        "virtual",
+        "aws",
+        "azure"
+      ],
       "licenseSku": "SFvUNL",
       "vcpu": 36,
       "ramGb": 64,
@@ -296,7 +385,8 @@
       "minUsers": 5000,
       "maxUsers": 100000,
       "awsInstance": "c5.9xlarge / c5.12xlarge",
-      "azureVmSize": "Standard_D32s_v4"
+      "azureVmSize": "Standard_D32s_v4",
+      "maxConcurrentConnections": 50000000
     }
   ]
 }
