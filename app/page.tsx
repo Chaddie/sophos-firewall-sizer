@@ -50,7 +50,7 @@ export default async function HomePage() {
                 {sophosBrand.tagline}
               </p>
               <h1 className="font-heading text-4xl leading-tight sm:text-5xl">
-                Firewall Sizing
+                Sophos Hardware Sizing
               </h1>
               <p className="text-base leading-relaxed text-[var(--sophos-gray)]">
                 Send customers a simple questionnaire and get appliance
