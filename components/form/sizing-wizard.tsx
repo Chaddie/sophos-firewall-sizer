@@ -227,6 +227,14 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
                 ? `Sizing request for ${label}`
                 : "Firewall, switch, and wireless sizing across your sites"}
             </p>
+            <a
+              href="/guides/customer-guide.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block text-xs font-medium text-[var(--sophos-blue)] underline underline-offset-2 hover:text-[var(--sophos-navy)]"
+            >
+              Need help? Download the guide (PDF)
+            </a>
           </div>
 
           <div className="space-y-2">

@@ -17,6 +17,14 @@ export function DashboardNav({ showAdmin = false }: { showAdmin?: boolean }) {
               Catalog admin
             </AppHeaderNavLink>
           )}
+          <a
+            href="/guides/account-manager-guide.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-white/75 transition-colors hover:text-white"
+          >
+            User guide
+          </a>
         </nav>
       }
       actions={

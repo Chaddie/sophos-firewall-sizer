@@ -13,6 +13,7 @@ Multi-site sizing questionnaire for Sophos Firewall, Switch, and Wireless (AP) p
 - **Catalog admin** (Sales Engineers only) — edit firewall/switch model specs and real order SKUs from the app, no redeploy required
 - **Tier overrides** — an AM/SE can re-quote a site's BOM against the Minimum/Recommended/Optimal tier instead of the default
 - **Presales dashboard** — view submissions, consolidated bill of materials, and copyable quote summaries
+- **User guides** — downloadable PDF guides for both audiences: "User guide" in the dashboard nav (Account Managers/Sales Engineers) and "Need help?" on the sizing wizard (customers)
 
 ## Stack
 
@@ -143,6 +144,7 @@ To reset a model back to its shipped defaults, re-run `npm run db:seed-catalog` 
 | `npm run db:generate` | Generate Drizzle migrations |
 | `npm run db:seed` | Create/update Account Manager + Sales Engineer users |
 | `npm run db:seed-catalog` | Seed/reset firewall + switch catalog tables from bundled JSON |
+| `npm run docs:guides` | Regenerate the PDF user guides in `public/guides/` |
 
 ## Project structure
 
@@ -163,11 +165,14 @@ lib/
   catalog-actions.ts  Catalog admin CRUD server actions
   tier-actions.ts     Tier override server action
 scripts/
-  migrate-v2.sql      Roles + mandatory label migration
-  migrate-v3.sql      Catalog admin tables migration
-  migrate-v4.sql      Contact name/email columns on sizing_requests
-  seed.ts             User seeding
-  seed-catalog.ts      Catalog seeding
+  migrate-v2.sql             Roles + mandatory label migration
+  migrate-v3.sql             Catalog admin tables migration
+  migrate-v4.sql             Contact name/email columns on sizing_requests
+  seed.ts                    User seeding
+  seed-catalog.ts            Catalog seeding
+  generate-user-guides.ts    Builds the PDF guides in public/guides/
+public/
+  guides/             Generated PDF user guides (committed; regenerate with `npm run docs:guides`)
 ```
 
 ## Known limitations / ideas for next steps

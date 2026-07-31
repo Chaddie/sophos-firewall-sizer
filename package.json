@@ -10,11 +10,13 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:seed": "tsx scripts/seed.ts",
-    "db:seed-catalog": "tsx scripts/seed-catalog.ts"
+    "db:seed-catalog": "tsx scripts/seed-catalog.ts",
+    "docs:guides": "tsx scripts/generate-user-guides.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "@neondatabase/serverless": "^1.1.0",
+    "@types/pdfkit": "^0.17.6",
     "@vercel/blob": "^2.6.1",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
@@ -23,6 +25,7 @@
     "lucide-react": "^1.27.0",
     "next": "16.2.12",
     "next-auth": "^5.0.0-beta.32",
+    "pdfkit": "^0.19.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "shadcn": "^4.16.0",
