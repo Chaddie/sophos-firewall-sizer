@@ -82,8 +82,9 @@ export function EmailGate({
               Confirm your email
             </CardTitle>
             <CardDescription>
-              To open this sizing questionnaire, please enter the email
-              address your account team used to send you this link.
+              To open this sizing questionnaire, please enter your work email
+              address. It must match the company domain this link was sent
+              to.
             </CardDescription>
           </CardHeader>
           <CardContent>

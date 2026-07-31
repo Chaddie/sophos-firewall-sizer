@@ -4,7 +4,7 @@ Multi-site sizing questionnaire for Sophos Firewall, Switch, and Wireless (AP) p
 
 ## Features
 
-- **Vanity URLs** — presales creates `/r/{slug}` links to send to customers, along with the recipient's name/email; the customer must confirm that exact email before the sizing wizard unlocks
+- **Vanity URLs** — presales creates `/r/{slug}` links to send to customers, along with the recipient's name/email; anyone on that same email domain must confirm their email before the sizing wizard unlocks
 - **Multi-site wizard** — customers add one or more named sites and pick which products (Firewall / Switches / Wireless) apply at each
 - **Firewall sizing** — Minimum / Recommended / Optimal model tiers from public Sophos XGS specs, across physical, virtual, AWS, and Azure environments
 - **Switch sizing** — Minimum / Recommended / Optimal Sophos Switch 200/1000 series tiers based on port count, GbE, uplink, and PoE requirements

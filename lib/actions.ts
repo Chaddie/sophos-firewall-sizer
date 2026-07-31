@@ -344,10 +344,15 @@ export async function getPublicRequest(slug: string) {
   };
 }
 
+function emailDomain(email: string): string | null {
+  const parts = email.trim().toLowerCase().split("@");
+  return parts.length === 2 && parts[1] ? parts[1] : null;
+}
+
 export async function verifyRequestAccess(slug: string, email: string) {
-  const normalized = email.trim().toLowerCase();
-  if (!normalized) {
-    return { error: "Please enter your email address" };
+  const normalizedDomain = emailDomain(email);
+  if (!normalizedDomain) {
+    return { error: "Please enter a valid email address" };
   }
 
   let contactEmail: string | null = null;
@@ -371,9 +376,10 @@ export async function verifyRequestAccess(slug: string, email: string) {
     return { success: true as const };
   }
 
-  if (contactEmail.trim().toLowerCase() !== normalized) {
+  if (emailDomain(contactEmail) !== normalizedDomain) {
     return {
-      error: "That email doesn't match what we have on file for this link.",
+      error:
+        "That email domain doesn't match what we have on file for this link.",
     };
   }
 

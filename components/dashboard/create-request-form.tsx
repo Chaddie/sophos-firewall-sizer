@@ -78,8 +78,8 @@ export function CreateRequestForm() {
           required
         />
         <p className="text-muted-foreground text-xs">
-          The customer must enter this exact email address before they can
-          open the sizing link.
+          The customer must enter an email address on this same domain before
+          they can open the sizing link (not necessarily this exact address).
         </p>
         {state?.error?.contactEmail && (
           <p className="text-destructive text-xs">
