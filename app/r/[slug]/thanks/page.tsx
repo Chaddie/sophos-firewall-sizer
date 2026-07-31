@@ -9,13 +9,37 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  getSubmittedProductSummary,
+  type SubmittedProductSummary,
+} from "@/lib/actions";
+
+function joinWithAnd(items: string[]): string {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+function describeRecommendedProducts(
+  summary: SubmittedProductSummary | null,
+): string {
+  const items: string[] = [];
+  if (!summary || summary.firewall) items.push("Sophos Firewall");
+  if (summary?.switches) items.push("Sophos Switch(es)");
+  if (summary?.wireless) items.push("Sophos Access Points");
+
+  return items.length > 0 ? joinWithAnd(items) : "a recommended solution";
+}
 
 export default async function ThanksPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  await params;
+  const { slug } = await params;
+  const productSummary = await getSubmittedProductSummary(slug);
+  const recommendedProducts = describeRecommendedProducts(productSummary);
 
   return (
     <>
@@ -35,9 +59,9 @@ export default async function ThanksPage({
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-[var(--sophos-gray)]">
-              Your account team will review your requirements and follow up with a
-              recommended Sophos firewall model. You do not need to take any
-              further action.
+              Your Sophos Account Manager will review your requirements and
+              follow up with recommended {recommendedProducts}. You do not
+              need to take any further action.
             </p>
             <Link href="/">
               <Button variant="outline">Done</Button>

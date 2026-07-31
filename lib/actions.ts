@@ -10,6 +10,7 @@ import {
   calculateSubmission,
   inputToSubmissionAnswers,
 } from "@/lib/sizing/submission-engine";
+import { isV2Answers } from "@/lib/sizing/types";
 import { createRequestSchema, sizingSubmissionSchema } from "@/lib/validations";
 import { desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -384,6 +385,55 @@ export async function verifyRequestAccess(slug: string, email: string) {
   }
 
   return { success: true as const };
+}
+
+export type SubmittedProductSummary = {
+  firewall: boolean;
+  switches: boolean;
+  wireless: boolean;
+};
+
+export async function getSubmittedProductSummary(
+  slug: string,
+): Promise<SubmittedProductSummary | null> {
+  if (isDemoMode()) {
+    await ensureDemoSeed();
+    const request = await demoStore.sizingRequests.findBySlug(slug);
+    if (!request) return null;
+    const submission = await demoStore.submissions.findByRequestId(request.id);
+    if (!submission) return null;
+    return summarizeProducts(submission.answers);
+  }
+
+  const [request] = await getDb()
+    .select({ id: sizingRequests.id })
+    .from(sizingRequests)
+    .where(eq(sizingRequests.slug, slug))
+    .limit(1);
+  if (!request) return null;
+
+  const [submission] = await getDb()
+    .select({ answers: submissions.answers })
+    .from(submissions)
+    .where(eq(submissions.requestId, request.id))
+    .limit(1);
+  if (!submission) return null;
+
+  return summarizeProducts(submission.answers);
+}
+
+function summarizeProducts(
+  answers: Parameters<typeof isV2Answers>[0],
+): SubmittedProductSummary {
+  if (isV2Answers(answers)) {
+    return {
+      firewall: answers.sites.some((site) => Boolean(site.products.firewall)),
+      switches: answers.sites.some((site) => Boolean(site.products.switches)),
+      wireless: answers.sites.some((site) => Boolean(site.products.wireless)),
+    };
+  }
+
+  return { firewall: true, switches: false, wireless: false };
 }
 
 export async function getSessionRole() {
