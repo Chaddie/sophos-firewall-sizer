@@ -75,12 +75,20 @@ export default async function RequestDetailPage({
             </CardHeader>
           </Card>
         ) : (
-          <SubmissionDetail
-            requestId={request.id}
-            answers={submission.answers}
-            recommendation={submission.recommendation}
-            submittedAt={submission.submittedAt}
-          />
+          <>
+            {!showCreator && (
+              <p className="rounded-md bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+                Please review this recommendation with your Sales Engineer
+                before sending a quote to the customer.
+              </p>
+            )}
+            <SubmissionDetail
+              requestId={request.id}
+              answers={submission.answers}
+              recommendation={submission.recommendation}
+              submittedAt={submission.submittedAt}
+            />
+          </>
         )}
       </main>
     </div>
