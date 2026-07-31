@@ -27,6 +27,8 @@ export async function createSizingRequest(
   const parsed = createRequestSchema.safeParse({
     label: formData.get("label"),
     slug: formData.get("slug"),
+    contactName: formData.get("contactName") || undefined,
+    contactEmail: formData.get("contactEmail"),
     expiresAt: formData.get("expiresAt") || undefined,
   });
 
@@ -34,7 +36,7 @@ export async function createSizingRequest(
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { label, slug, expiresAt } = parsed.data;
+  const { label, slug, contactName, contactEmail, expiresAt } = parsed.data;
 
   if (isDemoMode()) {
     await ensureDemoSeed();
@@ -47,6 +49,8 @@ export async function createSizingRequest(
       label,
       status: "pending",
       createdById: session.user.id,
+      contactName: contactName || null,
+      contactEmail,
       expiresAt: expiresAt ? new Date(expiresAt) : null,
     });
     revalidatePath("/dashboard");
@@ -69,6 +73,8 @@ export async function createSizingRequest(
       slug,
       label,
       createdById: session.user.id,
+      contactName: contactName || null,
+      contactEmail,
       expiresAt: expiresAt ? new Date(expiresAt) : null,
     })
     .returning();
@@ -172,6 +178,8 @@ export type DashboardRequestRow = {
   status: "pending" | "submitted";
   createdAt: Date;
   expiresAt: Date | null;
+  contactName?: string | null;
+  contactEmail?: string | null;
   createdByName?: string;
   createdByEmail?: string;
 };
@@ -216,6 +224,8 @@ export async function getDashboardRequests(): Promise<DashboardRequestRow[]> {
         status: sizingRequests.status,
         createdAt: sizingRequests.createdAt,
         expiresAt: sizingRequests.expiresAt,
+        contactName: sizingRequests.contactName,
+        contactEmail: sizingRequests.contactEmail,
         createdByName: users.name,
         createdByEmail: users.email,
       })
@@ -233,6 +243,8 @@ export async function getDashboardRequests(): Promise<DashboardRequestRow[]> {
       status: sizingRequests.status,
       createdAt: sizingRequests.createdAt,
       expiresAt: sizingRequests.expiresAt,
+      contactName: sizingRequests.contactName,
+      contactEmail: sizingRequests.contactEmail,
     })
     .from(sizingRequests)
     .where(eq(sizingRequests.createdById, session.user.id))
@@ -303,6 +315,7 @@ export async function getPublicRequest(slug: string) {
       label: request.label,
       status: request.status,
       expiresAt: request.expiresAt,
+      hasContactGate: Boolean(request.contactEmail),
     };
   }
 
@@ -313,12 +326,58 @@ export async function getPublicRequest(slug: string) {
       label: sizingRequests.label,
       status: sizingRequests.status,
       expiresAt: sizingRequests.expiresAt,
+      contactEmail: sizingRequests.contactEmail,
     })
     .from(sizingRequests)
     .where(eq(sizingRequests.slug, slug))
     .limit(1);
 
-  return request ?? null;
+  if (!request) return null;
+
+  return {
+    id: request.id,
+    slug: request.slug,
+    label: request.label,
+    status: request.status,
+    expiresAt: request.expiresAt,
+    hasContactGate: Boolean(request.contactEmail),
+  };
+}
+
+export async function verifyRequestAccess(slug: string, email: string) {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) {
+    return { error: "Please enter your email address" };
+  }
+
+  let contactEmail: string | null = null;
+
+  if (isDemoMode()) {
+    await ensureDemoSeed();
+    const request = await demoStore.sizingRequests.findBySlug(slug);
+    if (!request) return { error: "Sizing request not found" };
+    contactEmail = request.contactEmail;
+  } else {
+    const [request] = await getDb()
+      .select({ contactEmail: sizingRequests.contactEmail })
+      .from(sizingRequests)
+      .where(eq(sizingRequests.slug, slug))
+      .limit(1);
+    if (!request) return { error: "Sizing request not found" };
+    contactEmail = request.contactEmail;
+  }
+
+  if (!contactEmail) {
+    return { success: true as const };
+  }
+
+  if (contactEmail.trim().toLowerCase() !== normalized) {
+    return {
+      error: "That email doesn't match what we have on file for this link.",
+    };
+  }
+
+  return { success: true as const };
 }
 
 export async function getSessionRole() {

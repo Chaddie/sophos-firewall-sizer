@@ -111,7 +111,7 @@ export function WirelessSiteForm({
   return (
     <div className="space-y-4">
       <FormField
-        id={`${idPrefix}-facility`}
+        id={`${idPrefix}-facilityType`}
         label="Type of facility *"
         tooltip={WIRELESS_FIELD_TOOLTIPS.facilityType}
         value={value.facilityType}
@@ -120,7 +120,7 @@ export function WirelessSiteForm({
         hint="e.g. Office, Stadium, Warehouse"
       />
       <FormField
-        id={`${idPrefix}-ceiling`}
+        id={`${idPrefix}-ceilingHeight`}
         label="Ceiling height *"
         tooltip={WIRELESS_FIELD_TOOLTIPS.ceilingHeight}
         value={value.ceilingHeight}
@@ -128,7 +128,16 @@ export function WirelessSiteForm({
         errors={errors.ceilingHeight}
       />
       <FormField
-        id={`${idPrefix}-int-wall`}
+        id={`${idPrefix}-numberOfFloors`}
+        label="Number of floors *"
+        tooltip={WIRELESS_FIELD_TOOLTIPS.numberOfFloors}
+        type="number"
+        value={value.numberOfFloors}
+        onChange={(v) => set("numberOfFloors", v)}
+        errors={errors.numberOfFloors}
+      />
+      <FormField
+        id={`${idPrefix}-internalWallMaterial`}
         label="Internal wall material *"
         tooltip={WIRELESS_FIELD_TOOLTIPS.internalWallMaterial}
         value={value.internalWallMaterial}
@@ -136,7 +145,7 @@ export function WirelessSiteForm({
         errors={errors.internalWallMaterial}
       />
       <FormField
-        id={`${idPrefix}-ext-wall`}
+        id={`${idPrefix}-externalWallMaterial`}
         label="External wall material *"
         tooltip={WIRELESS_FIELD_TOOLTIPS.externalWallMaterial}
         value={value.externalWallMaterial}
@@ -146,12 +155,12 @@ export function WirelessSiteForm({
 
       <div>
         <LabelWithTooltip
-          htmlFor={`${idPrefix}-floorplan`}
+          htmlFor={`${idPrefix}-floorPlanNotes`}
           label="Floor plan with approx area (ft/m) *"
           tooltip={WIRELESS_FIELD_TOOLTIPS.floorPlanNotes}
         />
         <Textarea
-          id={`${idPrefix}-floorplan`}
+          id={`${idPrefix}-floorPlanNotes`}
           className="mt-1.5 min-h-24"
           value={value.floorPlanNotes}
           onChange={(e) => set("floorPlanNotes", e.target.value)}
@@ -214,7 +223,7 @@ export function WirelessSiteForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField
-          id={`${idPrefix}-total-users`}
+          id={`${idPrefix}-totalUsers`}
           label="Number of users total *"
           tooltip={WIRELESS_FIELD_TOOLTIPS.totalUsers}
           type="number"
@@ -223,7 +232,7 @@ export function WirelessSiteForm({
           errors={errors.totalUsers}
         />
         <FormField
-          id={`${idPrefix}-users-ap`}
+          id={`${idPrefix}-usersPerAp`}
           label="Number of users per AP *"
           tooltip={WIRELESS_FIELD_TOOLTIPS.usersPerAp}
           type="number"

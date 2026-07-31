@@ -172,6 +172,8 @@ export const WIRELESS_FIELD_TOOLTIPS = {
     "The type of building or space affects expected foot traffic and construction, both of which influence access point density and placement.",
   ceilingHeight:
     "Higher ceilings reduce Wi-Fi signal strength at floor level and may change how many access points are needed or how they're mounted.",
+  numberOfFloors:
+    "Multi-floor buildings need access points planned per floor — Wi-Fi signal does not pass well between floors, especially through concrete or metal decking.",
   internalWallMaterial:
     "Dense materials (concrete, brick, metal studs) attenuate Wi-Fi signal more than drywall or glass, affecting how many access points are needed.",
   externalWallMaterial:

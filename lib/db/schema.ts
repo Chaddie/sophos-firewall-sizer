@@ -42,6 +42,8 @@ export const sizingRequests = pgTable("sizing_requests", {
   createdById: uuid("created_by_id")
     .notNull()
     .references(() => users.id),
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()

@@ -73,6 +73,12 @@ export default async function DashboardPage() {
                     <p className="text-muted-foreground text-sm">
                       {buildVanityUrl(req.slug)}
                     </p>
+                    {req.contactEmail && (
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        For: {req.contactName ? `${req.contactName} ` : ""}
+                        {`<${req.contactEmail}>`}
+                      </p>
+                    )}
                     {showCreator && req.createdByName && (
                       <p className="text-muted-foreground mt-1 text-xs">
                         Created by {req.createdByName}

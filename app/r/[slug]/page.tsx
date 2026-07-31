@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { SizingWizard } from "@/components/form/sizing-wizard";
 import { AppHeader } from "@/components/brand/app-header";
+import { EmailGate } from "@/components/form/email-gate";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { getPublicRequest } from "@/lib/actions";
@@ -42,36 +43,34 @@ export default async function PublicFormPage({
   const expired =
     request.expiresAt !== null && request.expiresAt < new Date();
 
-  if (expired) {
-    return (
-      <>
-        <AppHeader />
-        <div className="mx-auto max-w-lg flex-1 px-4 py-16">
-          <Alert variant="destructive">
-            <AlertTitle>Link expired</AlertTitle>
-            <AlertDescription>
-              This sizing link is no longer accepting submissions. Please contact
-              your account team for a new link.
-            </AlertDescription>
-          </Alert>
-        </div>
-      </>
-    );
-  }
-
-  if (request.status === "submitted") {
-    return (
-      <BrandedMessagePage
-        title="Already submitted"
-        description="Thank you — your firewall sizing questionnaire has already been submitted. Your account team will be in touch with recommendations."
-        action={
-          <Link href={`/r/${slug}/thanks`}>
-            <Button variant="outline">View confirmation</Button>
-          </Link>
-        }
-      />
-    );
-  }
-
-  return <SizingWizard slug={slug} label={request.label} />;
+  return (
+    <EmailGate slug={slug} hasGate={request.hasContactGate}>
+      {expired ? (
+        <>
+          <AppHeader />
+          <div className="mx-auto max-w-lg flex-1 px-4 py-16">
+            <Alert variant="destructive">
+              <AlertTitle>Link expired</AlertTitle>
+              <AlertDescription>
+                This sizing link is no longer accepting submissions. Please
+                contact your account team for a new link.
+              </AlertDescription>
+            </Alert>
+          </div>
+        </>
+      ) : request.status === "submitted" ? (
+        <BrandedMessagePage
+          title="Already submitted"
+          description="Thank you — your firewall sizing questionnaire has already been submitted. Your account team will be in touch with recommendations."
+          action={
+            <Link href={`/r/${slug}/thanks`}>
+              <Button variant="outline">View confirmation</Button>
+            </Link>
+          }
+        />
+      ) : (
+        <SizingWizard slug={slug} label={request.label} />
+      )}
+    </EmailGate>
+  );
 }

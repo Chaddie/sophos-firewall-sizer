@@ -58,6 +58,7 @@ export interface SitePlanFile {
 export interface WirelessSiteAnswers {
   facilityType: string;
   ceilingHeight: string;
+  numberOfFloors: number;
   internalWallMaterial: string;
   externalWallMaterial: string;
   floorPlanNotes: string;

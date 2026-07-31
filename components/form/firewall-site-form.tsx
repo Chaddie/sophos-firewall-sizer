@@ -120,7 +120,7 @@ export function FirewallSiteForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField
-          id={`${idPrefix}-wan-total`}
+          id={`${idPrefix}-totalWanBandwidthMbps`}
           label="Internet circuit speed (Mbps)"
           tooltip={WAN_FIELD_TOOLTIPS.totalWanBandwidthMbps}
           type="number"
@@ -129,7 +129,7 @@ export function FirewallSiteForm({
           errors={errors.totalWanBandwidthMbps}
         />
         <FormField
-          id={`${idPrefix}-wan-avg`}
+          id={`${idPrefix}-averageWanConsumptionMbps`}
           label="Typical usage (Mbps)"
           tooltip={WAN_FIELD_TOOLTIPS.averageWanConsumptionMbps}
           type="number"
@@ -138,7 +138,7 @@ export function FirewallSiteForm({
           errors={errors.averageWanConsumptionMbps}
         />
         <FormField
-          id={`${idPrefix}-wan-peak`}
+          id={`${idPrefix}-expectedPeakThroughputMbps`}
           label="Expected peak throughput (Mbps)"
           tooltip={WAN_FIELD_TOOLTIPS.expectedPeakThroughputMbps}
           type="number"
@@ -147,7 +147,7 @@ export function FirewallSiteForm({
           errors={errors.expectedPeakThroughputMbps}
         />
         <FormField
-          id={`${idPrefix}-wan-growth`}
+          id={`${idPrefix}-wanGrowth3yrPercent`}
           label="3-year growth (%)"
           tooltip={WAN_FIELD_TOOLTIPS.wanGrowth3yrPercent}
           type="number"
@@ -283,8 +283,8 @@ export function FirewallSiteForm({
         <div className="grid gap-4 sm:grid-cols-2">
           {(value.vpnType === "ipsec" || value.vpnType === "both") && (
             <FormField
-              id={`${idPrefix}-ipsec`}
-              label="Concurrent IPsec tunnels"
+              id={`${idPrefix}-ipsecTunnels`}
+              label="Concurrent IPsec (SD-WAN) tunnels"
               tooltip={VPN_FIELD_TOOLTIPS.ipsecTunnels}
               type="number"
               value={value.ipsecTunnels}
@@ -294,7 +294,7 @@ export function FirewallSiteForm({
           )}
           {(value.vpnType === "ssl" || value.vpnType === "both") && (
             <FormField
-              id={`${idPrefix}-ssl`}
+              id={`${idPrefix}-sslVpnTunnels`}
               label="Concurrent SSL VPN tunnels"
               tooltip={VPN_FIELD_TOOLTIPS.sslVpnTunnels}
               type="number"
@@ -304,7 +304,7 @@ export function FirewallSiteForm({
             />
           )}
           <FormField
-            id={`${idPrefix}-vpn-peak`}
+            id={`${idPrefix}-peakVpnThroughputMbps`}
             label="Peak VPN throughput (Mbps)"
             tooltip={VPN_FIELD_TOOLTIPS.peakVpnThroughputMbps}
             type="number"
@@ -317,7 +317,7 @@ export function FirewallSiteForm({
       )}
 
       <FormField
-        id={`${idPrefix}-endpoints`}
+        id={`${idPrefix}-endpointCount`}
         label="Users or endpoints (optional)"
         tooltip={USER_FIELD_TOOLTIPS.endpointCount}
         type="number"
@@ -333,7 +333,7 @@ export function FirewallSiteForm({
       />
       {value.userAuthEnabled && (
         <FormField
-          id={`${idPrefix}-auth-users`}
+          id={`${idPrefix}-authUserCount`}
           label="Users requiring firewall authentication"
           tooltip={USER_FIELD_TOOLTIPS.authUserCount}
           type="number"
@@ -350,7 +350,7 @@ export function FirewallSiteForm({
       />
       {value.internalTrafficEnabled && (
         <FormField
-          id={`${idPrefix}-internal`}
+          id={`${idPrefix}-internalTrafficMbps`}
           label="Estimated internal traffic (Mbps)"
           tooltip={USER_FIELD_TOOLTIPS.internalTrafficMbps}
           type="number"

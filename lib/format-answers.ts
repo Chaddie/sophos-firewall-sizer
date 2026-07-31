@@ -133,6 +133,7 @@ function formatSiteProducts(site: SiteSubmission) {
       rows: [
         { label: "Facility type", value: w.facilityType },
         { label: "Ceiling height", value: w.ceilingHeight },
+        { label: "Number of floors", value: String(w.numberOfFloors) },
         { label: "Internal wall material", value: w.internalWallMaterial },
         { label: "External wall material", value: w.externalWallMaterial },
         { label: "Floor plan / area", value: w.floorPlanNotes },

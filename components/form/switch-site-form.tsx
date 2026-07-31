@@ -33,7 +33,7 @@ export function SwitchSiteForm({
       </p>
 
       <FormField
-        id={`${idPrefix}-ports`}
+        id={`${idPrefix}-switchPortCount`}
         label="How many switch ports are needed at this location?"
         tooltip={SWITCH_FIELD_TOOLTIPS.switchPortCount}
         type="number"
@@ -70,7 +70,7 @@ export function SwitchSiteForm({
       {value.needsPoE && (
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField
-            id={`${idPrefix}-poe30`}
+            id={`${idPrefix}-poe30wDeviceCount`}
             label="Devices requiring 30W PoE"
             tooltip={SWITCH_FIELD_TOOLTIPS.poe30wDeviceCount}
             type="number"
@@ -79,7 +79,7 @@ export function SwitchSiteForm({
             errors={errors.poe30wDeviceCount}
           />
           <FormField
-            id={`${idPrefix}-poe60`}
+            id={`${idPrefix}-poeBt60wDeviceCount`}
             label="Devices requiring BT (60W) PoE"
             tooltip={SWITCH_FIELD_TOOLTIPS.poeBt60wDeviceCount}
             type="number"

@@ -16,6 +16,8 @@ export interface DemoSizingRequest {
   label: string;
   status: "pending" | "submitted";
   createdById: string;
+  contactName: string | null;
+  contactEmail: string | null;
   expiresAt: Date | null;
   createdAt: Date;
 }

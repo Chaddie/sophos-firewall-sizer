@@ -60,6 +60,35 @@ export function CreateRequestForm() {
       </div>
 
       <div className="space-y-2">
+        <Label htmlFor="contactName">Contact name (optional)</Label>
+        <Input
+          id="contactName"
+          name="contactName"
+          placeholder="Jane Smith"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="contactEmail">Contact email</Label>
+        <Input
+          id="contactEmail"
+          name="contactEmail"
+          type="email"
+          placeholder="jane@acmecorp.com"
+          required
+        />
+        <p className="text-muted-foreground text-xs">
+          The customer must enter this exact email address before they can
+          open the sizing link.
+        </p>
+        {state?.error?.contactEmail && (
+          <p className="text-destructive text-xs">
+            {state.error.contactEmail.join(", ")}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="expiresAt">Link expiry (optional)</Label>
         <Input id="expiresAt" name="expiresAt" type="datetime-local" />
       </div>

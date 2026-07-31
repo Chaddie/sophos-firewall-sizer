@@ -30,6 +30,8 @@ export async function ensureDemoSeed() {
       label: "Demo Customer",
       status: "pending",
       createdById: "demo-admin",
+      contactName: "Demo Contact",
+      contactEmail: "customer@example.com",
       expiresAt: null,
     });
   }

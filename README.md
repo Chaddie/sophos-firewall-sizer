@@ -4,7 +4,7 @@ Multi-site sizing questionnaire for Sophos Firewall, Switch, and Wireless (AP) p
 
 ## Features
 
-- **Vanity URLs** — presales creates `/r/{slug}` links to send to customers
+- **Vanity URLs** — presales creates `/r/{slug}` links to send to customers, along with the recipient's name/email; the customer must confirm that exact email before the sizing wizard unlocks
 - **Multi-site wizard** — customers add one or more named sites and pick which products (Firewall / Switches / Wireless) apply at each
 - **Firewall sizing** — Minimum / Recommended / Optimal model tiers from public Sophos XGS specs, across physical, virtual, AWS, and Azure environments
 - **Switch sizing** — Minimum / Recommended / Optimal Sophos Switch 200/1000 series tiers based on port count, GbE, uplink, and PoE requirements
@@ -55,7 +55,7 @@ Create a free database at [neon.tech](https://neon.tech), then push the schema:
 npm run db:push
 ```
 
-If you're upgrading an existing database from an earlier version of this app rather than starting fresh, also run the numbered migration scripts in `scripts/` in order (`migrate-v2.sql`, `migrate-v3.sql`) against your database before `db:push`/`db:seed`.
+If you're upgrading an existing database from an earlier version of this app rather than starting fresh, also run the numbered migration scripts in `scripts/` in order (`migrate-v2.sql`, `migrate-v3.sql`, `migrate-v4.sql`) against your database before `db:push`/`db:seed`.
 
 Seed the presales users (one Account Manager, one Sales Engineer) and the firewall/switch catalogs:
 
@@ -165,6 +165,7 @@ lib/
 scripts/
   migrate-v2.sql      Roles + mandatory label migration
   migrate-v3.sql      Catalog admin tables migration
+  migrate-v4.sql      Contact name/email columns on sizing_requests
   seed.ts             User seeding
   seed-catalog.ts      Catalog seeding
 ```
@@ -174,3 +175,5 @@ scripts/
 - BOM line items are sizing SKUs without pricing — pricing is expected to happen downstream (SFDC/CPQ)
 - No submission history/audit trail — each sizing link accepts a single submission
 - Wireless APs are never auto-sized; this app only collects and hands off scoping info to the presales wireless team
+- No rate limiting/lockout on repeated wrong-email guesses at the customer email gate
+- Sizing links created before this feature have no contact email on file and remain ungated

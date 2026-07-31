@@ -141,6 +141,7 @@ export const sitePlanFileSchema = z.object({
 export const wirelessSiteSchema = z.object({
   facilityType: z.string().min(1, "Required"),
   ceilingHeight: z.string().min(1, "Required"),
+  numberOfFloors: z.coerce.number().min(1, "Required"),
   internalWallMaterial: z.string().min(1, "Required"),
   externalWallMaterial: z.string().min(1, "Required"),
   floorPlanNotes: z.string().min(1, "Required"),
@@ -220,6 +221,8 @@ export const createRequestSchema = z.object({
       /^[a-z0-9-]+$/,
       "Slug may only contain lowercase letters, numbers, and hyphens",
     ),
+  contactName: z.string().optional(),
+  contactEmail: z.string().email("A valid contact email is required"),
   expiresAt: z.string().optional(),
 });
 
@@ -259,9 +262,9 @@ export const TLS_INSPECTION_LABELS: Record<
 
 export const VPN_TYPE_LABELS: Record<z.infer<typeof vpnTypeSchema>, string> = {
   none: "No VPN",
-  ipsec: "Site-to-site (IPsec) only",
+  ipsec: "Site-to-site (IPsec / SD-WAN) only",
   ssl: "Remote access (SSL VPN) only",
-  both: "Both IPsec and SSL VPN",
+  both: "Both IPsec/SD-WAN and SSL VPN",
 };
 
 export const WIRELESS_DESIGN_GOAL_LABELS: Record<

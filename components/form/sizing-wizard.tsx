@@ -18,26 +18,21 @@ import { AppHeader } from "@/components/brand/app-header";
 import { FirewallSiteForm } from "@/components/form/firewall-site-form";
 import { SwitchSiteForm } from "@/components/form/switch-site-form";
 import { WirelessSiteForm } from "@/components/form/wireless-site-form";
-import {
-  FormField,
-  ProductToggle,
-} from "@/components/form/form-field";
+import { ProductToggle } from "@/components/form/form-field";
 import { LabelWithTooltip } from "@/components/form/info-tooltip";
 import { sophosBrand } from "@/lib/brand";
 import {
   defaultSiteState,
   sitesToSubmissionPayload,
-  type ContactFormState,
   type SiteFormState,
 } from "@/lib/form/defaults";
 import {
-  CONTACT_FIELD_TOOLTIPS,
   PRODUCT_TOGGLE_TOOLTIPS,
   SITE_FIELD_TOOLTIPS,
 } from "@/lib/form-tooltips";
 import { sizingSubmissionSchema } from "@/lib/validations";
 
-const STEP_LABELS = ["Sites", "Configure", "Contact", "Review"] as const;
+const STEP_LABELS = ["Sites", "Configure", "Review"] as const;
 
 interface SizingWizardProps {
   slug: string;
@@ -48,10 +43,6 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [sites, setSites] = useState<SiteFormState[]>([defaultSiteState("")]);
-  const [contact, setContact] = useState<ContactFormState>({
-    customerName: "",
-    customerEmail: "",
-  });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -68,6 +59,23 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
   function removeSite(index: number) {
     if (sites.length <= 1) return;
     setSites((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function focusFirstError(stepErrors: Record<string, string[]>) {
+    const firstKey = Object.keys(stepErrors)[0];
+    if (!firstKey) return;
+    const domId = firstKey.replace(/\./g, "-");
+    requestAnimationFrame(() => {
+      const el = document.getElementById(domId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (typeof (el as HTMLElement).focus === "function") {
+          (el as HTMLElement).focus({ preventScroll: true });
+        }
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
   }
 
   function validateStep(): boolean {
@@ -137,6 +145,8 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
             stepErrors[`sites.${i}.facilityType`] = ["Required"];
           if (!w.ceilingHeight)
             stepErrors[`sites.${i}.ceilingHeight`] = ["Required"];
+          if (!w.numberOfFloors)
+            stepErrors[`sites.${i}.numberOfFloors`] = ["Required"];
           if (!w.internalWallMaterial)
             stepErrors[`sites.${i}.internalWallMaterial`] = ["Required"];
           if (!w.externalWallMaterial)
@@ -150,7 +160,11 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
     }
 
     setErrors(stepErrors);
-    return Object.keys(stepErrors).length === 0;
+    if (Object.keys(stepErrors).length > 0) {
+      focusFirstError(stepErrors);
+      return false;
+    }
+    return true;
   }
 
   function nextStep() {
@@ -167,10 +181,15 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
     setSubmitting(true);
     setErrors({});
 
-    const payload = sitesToSubmissionPayload(sites, contact);
+    const payload = sitesToSubmissionPayload(sites);
     const parsed = sizingSubmissionSchema.safeParse(payload);
     if (!parsed.success) {
-      setErrors(parsed.error.flatten().fieldErrors as Record<string, string[]>);
+      const flatErrors = parsed.error.flatten().fieldErrors as Record<
+        string,
+        string[]
+      >;
+      setErrors(flatErrors);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       setSubmitting(false);
       return;
     }
@@ -182,6 +201,7 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
         if (val) flat[key] = val;
       }
       setErrors(flat);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       setSubmitting(false);
       return;
     }
@@ -240,10 +260,7 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
                   "Add each location you need to size. You can configure firewall, switches, and wireless per site."}
                 {step === 1 &&
                   "For each site, choose which products apply and complete the relevant questions."}
-                {step === 2 &&
-                  "Optional contact details for your Sophos Account Management team."}
-                {step === 3 &&
-                  "Review your answers before submitting."}
+                {step === 2 && "Review your answers before submitting."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -256,12 +273,12 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
                     >
                       <div className="flex-1">
                         <LabelWithTooltip
-                          htmlFor={`site-name-${index}`}
+                          htmlFor={`sites-${index}-siteName`}
                           label="Site / location name"
                           tooltip={SITE_FIELD_TOOLTIPS.siteName}
                         />
                         <Input
-                          id={`site-name-${index}`}
+                          id={`sites-${index}-siteName`}
                           value={site.siteName}
                           onChange={(e) =>
                             updateSite(index, {
@@ -307,7 +324,10 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
                         {site.siteName || `Site ${index + 1}`}
                       </h3>
 
-                      <div className="grid gap-3 sm:grid-cols-3">
+                      <div
+                        id={`sites-${index}-products`}
+                        className="grid gap-3 sm:grid-cols-3"
+                      >
                         <ProductToggle
                           label="Firewall"
                           tooltip={PRODUCT_TOGGLE_TOOLTIPS.firewall}
@@ -356,7 +376,7 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
                             onChange={(fw) =>
                               updateSite(index, { ...site, firewall: fw })
                             }
-                            idPrefix={`site-${index}-fw`}
+                            idPrefix={`sites-${index}`}
                             errors={{
                               totalWanBandwidthMbps:
                                 errors[`sites.${index}.totalWanBandwidthMbps`],
@@ -391,7 +411,7 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
                             onChange={(sw) =>
                               updateSite(index, { ...site, switches: sw })
                             }
-                            idPrefix={`site-${index}-sw`}
+                            idPrefix={`sites-${index}`}
                             errors={{
                               switchPortCount:
                                 errors[`sites.${index}.switchPortCount`],
@@ -412,12 +432,14 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
                             onChange={(w) =>
                               updateSite(index, { ...site, wireless: w })
                             }
-                            idPrefix={`site-${index}-ap`}
+                            idPrefix={`sites-${index}`}
                             errors={{
                               facilityType:
                                 errors[`sites.${index}.facilityType`],
                               ceilingHeight:
                                 errors[`sites.${index}.ceilingHeight`],
+                              numberOfFloors:
+                                errors[`sites.${index}.numberOfFloors`],
                               internalWallMaterial:
                                 errors[`sites.${index}.internalWallMaterial`],
                               externalWallMaterial:
@@ -436,31 +458,6 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
               )}
 
               {step === 2 && (
-                <div className="grid gap-4">
-                  <FormField
-                    id="customerName"
-                    label="Your name (optional)"
-                    tooltip={CONTACT_FIELD_TOOLTIPS.customerName}
-                    value={contact.customerName}
-                    onChange={(v) =>
-                      setContact((c) => ({ ...c, customerName: v }))
-                    }
-                  />
-                  <FormField
-                    id="customerEmail"
-                    label="Your email (optional)"
-                    tooltip={CONTACT_FIELD_TOOLTIPS.customerEmail}
-                    type="email"
-                    value={contact.customerEmail}
-                    onChange={(v) =>
-                      setContact((c) => ({ ...c, customerEmail: v }))
-                    }
-                    errors={errors.customerEmail}
-                  />
-                </div>
-              )}
-
-              {step === 3 && (
                 <div className="space-y-4 text-sm">
                   {sites.map((site, index) => (
                     <div
@@ -477,12 +474,6 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
                       </ul>
                     </div>
                   ))}
-                  {(contact.customerName || contact.customerEmail) && (
-                    <p className="text-muted-foreground">
-                      Contact: {contact.customerName}{" "}
-                      {contact.customerEmail && `<${contact.customerEmail}>`}
-                    </p>
-                  )}
                 </div>
               )}
 

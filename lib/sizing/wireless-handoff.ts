@@ -26,6 +26,7 @@ export function buildWirelessSummary(
     "Mandatory fields",
     line("Type of facility", answers.facilityType),
     line("Ceiling height", answers.ceilingHeight),
+    line("Number of floors", answers.numberOfFloors),
     line("Internal wall material", answers.internalWallMaterial),
     line("External wall material", answers.externalWallMaterial),
     line("Floor plan / approx area", answers.floorPlanNotes),

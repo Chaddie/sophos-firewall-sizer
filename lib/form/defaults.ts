@@ -44,6 +44,7 @@ export interface SwitchFormState {
 export interface WirelessFormState {
   facilityType: string;
   ceilingHeight: string;
+  numberOfFloors: string;
   internalWallMaterial: string;
   externalWallMaterial: string;
   floorPlanNotes: string;
@@ -67,11 +68,6 @@ export interface SiteFormState {
   firewall: FirewallFormState;
   switches: SwitchFormState;
   wireless: WirelessFormState;
-}
-
-export interface ContactFormState {
-  customerName: string;
-  customerEmail: string;
 }
 
 export const defaultFirewallState = (): FirewallFormState => ({
@@ -109,6 +105,7 @@ export const defaultSwitchState = (): SwitchFormState => ({
 export const defaultWirelessState = (): WirelessFormState => ({
   facilityType: "",
   ceilingHeight: "",
+  numberOfFloors: "",
   internalWallMaterial: "",
   externalWallMaterial: "",
   floorPlanNotes: "",
@@ -185,6 +182,7 @@ export function wirelessFormToPayload(w: WirelessFormState) {
   return {
     facilityType: w.facilityType,
     ceilingHeight: w.ceilingHeight,
+    numberOfFloors: Number(w.numberOfFloors),
     internalWallMaterial: w.internalWallMaterial,
     externalWallMaterial: w.externalWallMaterial,
     floorPlanNotes: w.floorPlanNotes,
@@ -201,16 +199,9 @@ export function wirelessFormToPayload(w: WirelessFormState) {
   };
 }
 
-export function sitesToSubmissionPayload(
-  sites: SiteFormState[],
-  contact: ContactFormState,
-) {
+export function sitesToSubmissionPayload(sites: SiteFormState[]) {
   return {
     schemaVersion: 2 as const,
-    contact: {
-      customerName: contact.customerName || undefined,
-      customerEmail: contact.customerEmail || undefined,
-    },
     sites: sites.map((site) => ({
       siteName: site.siteName,
       enableFirewall: site.enableFirewall,

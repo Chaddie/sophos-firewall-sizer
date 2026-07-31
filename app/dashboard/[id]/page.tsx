@@ -40,6 +40,12 @@ export default async function RequestDetailPage({
               {request.label}
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">{vanityUrl}</p>
+            {request.contactEmail && (
+              <p className="text-muted-foreground mt-1 text-xs">
+                For: {request.contactName ? `${request.contactName} ` : ""}
+                {`<${request.contactEmail}>`}
+              </p>
+            )}
             {showCreator && creator && (
               <p className="text-muted-foreground mt-1 text-xs">
                 Created by {creator.name} ({creator.email})
