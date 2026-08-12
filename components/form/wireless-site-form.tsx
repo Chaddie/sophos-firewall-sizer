@@ -14,7 +14,10 @@ import {
 } from "@/lib/form-tooltips";
 import type { WirelessFormState } from "@/lib/form/defaults";
 import type { SitePlanFile, WirelessDesignGoal } from "@/lib/sizing/types";
-import { WIRELESS_DESIGN_GOAL_LABELS } from "@/lib/validations";
+import {
+  AP6_MODEL_OPTIONS,
+  WIRELESS_DESIGN_GOAL_LABELS,
+} from "@/lib/validations";
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 
@@ -293,13 +296,25 @@ export function WirelessSiteForm({
         onChange={(v) => set("devicesPerUser", v)}
         hint="Laptops, phones, etc."
       />
-      <FormField
-        id={`${idPrefix}-ap-models`}
-        label="Suggestion for specific AP models"
-        tooltip={WIRELESS_FIELD_TOOLTIPS.suggestedApModels}
-        value={value.suggestedApModels}
-        onChange={(v) => set("suggestedApModels", v)}
-      />
+      <div>
+        <LabelWithTooltip
+          htmlFor={`${idPrefix}-suggestedApModels`}
+          label="Preferred AP6 model"
+          tooltip={WIRELESS_FIELD_TOOLTIPS.suggestedApModels}
+        />
+        <select
+          id={`${idPrefix}-suggestedApModels`}
+          className="border-input mt-1.5 flex h-8 w-full rounded-lg border bg-transparent px-2.5 text-sm"
+          value={value.suggestedApModels}
+          onChange={(e) => set("suggestedApModels", e.target.value)}
+        >
+          {AP6_MODEL_OPTIONS.map((opt) => (
+            <option key={opt.value || "none"} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
       <FormField
         id={`${idPrefix}-unavail-ch`}
         label="Unavailable / saturated channels"

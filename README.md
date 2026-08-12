@@ -10,7 +10,7 @@ Multi-site sizing questionnaire for Sophos Firewall, Switch, and Wireless (AP) p
 - **Switch sizing** — Minimum / Recommended / Optimal Sophos Switch 200/1000 series tiers based on port count, GbE, uplink, and PoE requirements
 - **Wireless / AP handoff** — collects site survey info and uploaded site plans, then generates a pre-filled email + downloadable summary for `presalesdesk-wireless@sophos.com`
 - **Roles** — Account Managers see only their own links; Sales Engineers see every link and who created it
-- **Catalog admin** (Sales Engineers only) — edit firewall/switch model specs and real order SKUs from the app, no redeploy required
+- **Catalog admin** (Sales Engineers only) — edit firewall/switch model specs, redundant PSU SKUs, and SFP+ SR/LR transceiver accessories from the app, no redeploy required
 - **Tier overrides** — an AM/SE can re-quote a site's BOM against the Minimum/Recommended/Optimal tier instead of the default
 - **Presales dashboard** — view submissions, consolidated bill of materials, and copyable quote summaries
 - **User guides** — downloadable PDF guides for both audiences: "User guide" in the dashboard nav (Account Managers/Sales Engineers) and "Need help?" on the sizing wizard (customers)
@@ -56,7 +56,7 @@ Create a free database at [neon.tech](https://neon.tech), then push the schema:
 npm run db:push
 ```
 
-If you're upgrading an existing database from an earlier version of this app rather than starting fresh, also run the numbered migration scripts in `scripts/` in order (`migrate-v2.sql`, `migrate-v3.sql`, `migrate-v4.sql`) against your database before `db:push`/`db:seed`.
+If you're upgrading an existing database from an earlier version of this app rather than starting fresh, also run the numbered migration scripts in `scripts/` in order (`migrate-v2.sql`, `migrate-v3.sql`, `migrate-v4.sql`, `migrate-v5.sql`) against your database before `db:push`/`db:seed`.
 
 Seed the presales users (one Account Manager, one Sales Engineer) and the firewall/switch catalogs:
 
@@ -168,8 +168,9 @@ scripts/
   migrate-v2.sql             Roles + mandatory label migration
   migrate-v3.sql             Catalog admin tables migration
   migrate-v4.sql             Contact name/email columns on sizing_requests
+  migrate-v5.sql             Redundant PSU columns + accessory_models table
   seed.ts                    User seeding
-  seed-catalog.ts            Catalog seeding
+  seed-catalog.ts            Catalog seeding (firewalls, switches, accessories)
   generate-user-guides.ts    Builds the PDF guides in public/guides/
 public/
   guides/             Generated PDF user guides (committed; regenerate with `npm run docs:guides`)

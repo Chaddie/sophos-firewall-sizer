@@ -111,6 +111,19 @@ export const HA_TOOLTIPS = {
     "A redundant pair of firewalls in high availability mode. Requires two appliances plus Enhanced Support and an upgrade entitlement.",
 };
 
+export const ACCESSORY_FIELD_TOOLTIPS = {
+  requiresSfpPlus:
+    "Select yes if this site needs SFP+ fibre uplinks on the firewall appliance.",
+  includeSophosTransceivers:
+    "If yes, Sophos-branded SFP+ optics will be added to the quote using the SKUs configured in Catalog admin.",
+  sfpTransceiverType:
+    "SR (short-range) for multimode fibre within a building or campus; LR (long-range) for single-mode fibre over longer distances.",
+  sfpTransceiverCount:
+    "Total number of Sophos SFP+ transceivers to include on the quote for this site.",
+  redundantPsuRequired:
+    "Adds a spare / redundant power supply unit for each physical appliance (SKU configured per model in Catalog admin).",
+};
+
 export const WAF_LICENSE_TOOLTIPS: Record<WafLicense, string> = {
   not_required:
     "You do not need to protect published web applications with a Web Application Firewall on this firewall.",
@@ -193,7 +206,7 @@ export const WIRELESS_FIELD_TOOLTIPS = {
   devicesPerUser:
     "Average number of Wi-Fi devices each user connects (phone, laptop, etc.) — higher device density increases capacity requirements.",
   suggestedApModels:
-    "If you already have a preferred Sophos access point model in mind, note it here for the presales team to validate.",
+    "Preferred Sophos AP6 model for this site. The presales wireless team will validate suitability based on the site survey.",
   unavailableChannels:
     "Wi-Fi channels that are already congested or reserved by neighboring networks, to avoid during the survey and channel planning.",
   restrictedChannels:

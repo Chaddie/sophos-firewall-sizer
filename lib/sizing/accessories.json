@@ -1,0 +1,17 @@
+{
+  "version": "2026.1",
+  "models": [
+    {
+      "id": "sfp-sr",
+      "type": "sfp_sr",
+      "name": "Sophos SFP+ SR transceiver",
+      "sku": "SFP-SR"
+    },
+    {
+      "id": "sfp-lr",
+      "type": "sfp_lr",
+      "name": "Sophos SFP+ LR transceiver",
+      "sku": "SFP-LR"
+    }
+  ]
+}

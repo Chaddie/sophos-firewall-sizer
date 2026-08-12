@@ -38,6 +38,8 @@ function emptyModel(): CatalogModel {
     ramGb: undefined,
     awsInstance: "",
     azureVmSize: "",
+    redundantPsuSku: "",
+    redundantPsuName: "",
   };
 }
 
@@ -177,6 +179,16 @@ function ModelEditor({
           label="License SKU (virtual/cloud)"
           value={draft.licenseSku}
           onChange={(v) => set("licenseSku", v)}
+        />
+        <TextField
+          label="Redundant PSU SKU"
+          value={draft.redundantPsuSku}
+          onChange={(v) => set("redundantPsuSku", v)}
+        />
+        <TextField
+          label="Redundant PSU name"
+          value={draft.redundantPsuName}
+          onChange={(v) => set("redundantPsuName", v)}
         />
         {isVirtual && (
           <>

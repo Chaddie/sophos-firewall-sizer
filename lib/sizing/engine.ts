@@ -1,4 +1,4 @@
-import { CATALOG_VERSION, getFirewallCatalog } from "./catalog-store";
+import { CATALOG_VERSION, getAccessoryByType, getFirewallCatalog } from "./catalog-store";
 import type {
   BomLineItem,
   CatalogModel,
@@ -231,14 +231,24 @@ function buildModelCaveats(
     );
   }
 
+  if (
+    answers.environment === "physical" &&
+    answers.redundantPsuRequired &&
+    !model.redundantPsuSku
+  ) {
+    caveats.push(
+      "Redundant PSU requested but no PSU SKU configured for this model — set it in Catalog admin.",
+    );
+  }
+
   return caveats;
 }
 
-function buildBom(
+async function buildBom(
   model: CatalogModel,
   answers: SizingAnswers,
   env: Environment,
-): BomLineItem[] {
+): Promise<BomLineItem[]> {
   const qty = answers.haRequired ? 2 : 1;
   const bom: BomLineItem[] = [];
 
@@ -283,6 +293,41 @@ function buildBom(
       sku: "WAF-LICENSE",
       description:
         "Web Server Protection (WAF) license — not included in Standard or Xstream protection bundles",
+      quantity: qty,
+    });
+  }
+
+  if (
+    env === "physical" &&
+    answers.requiresSfpPlus &&
+    answers.includeSophosTransceivers &&
+    answers.sfpTransceiverType &&
+    answers.sfpTransceiverCount
+  ) {
+    const accessoryType =
+      answers.sfpTransceiverType === "sr" ? "sfp_sr" : "sfp_lr";
+    const accessory = await getAccessoryByType(accessoryType);
+    if (accessory) {
+      bom.push({
+        sku: accessory.sku,
+        description: accessory.name,
+        quantity: answers.sfpTransceiverCount,
+      });
+    } else {
+      bom.push({
+        sku: answers.sfpTransceiverType === "sr" ? "SFP-SR" : "SFP-LR",
+        description: `Sophos SFP+ ${answers.sfpTransceiverType.toUpperCase()} transceiver`,
+        quantity: answers.sfpTransceiverCount,
+      });
+    }
+  }
+
+  if (env === "physical" && answers.redundantPsuRequired && model.redundantPsuSku) {
+    bom.push({
+      sku: model.redundantPsuSku,
+      description:
+        model.redundantPsuName ??
+        `${model.name} redundant / spare PSU`,
       quantity: qty,
     });
   }
@@ -441,7 +486,7 @@ export async function calculateRecommendation(
     `~${requiredConnections.toLocaleString()} est. concurrent connections`,
   );
 
-  const bom = buildBom(selected, answers, answers.environment);
+  const bom = await buildBom(selected, answers, answers.environment);
 
   return {
     catalogVersion: CATALOG_VERSION,
@@ -484,7 +529,7 @@ export async function rebuildFirewallBomForTier(
   return {
     modelId: model.id,
     modelName: model.name,
-    bom: buildBom(model, answers, answers.environment),
+    bom: await buildBom(model, answers, answers.environment),
     licenseSku: model.licenseSku,
     instanceRecommendation: getInstanceRecommendation(model, answers.environment),
   };

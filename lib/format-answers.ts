@@ -83,6 +83,28 @@ function formatFirewallRows(firewall: FirewallSiteAnswers | SizingAnswers) {
       label: "High availability",
       value: firewall.haRequired ? "Yes" : "No",
     },
+    ...(firewall.environment === "physical"
+      ? [
+          {
+            label: "SFP+ ports required",
+            value: firewall.requiresSfpPlus ? "Yes" : "No",
+          },
+          ...(firewall.requiresSfpPlus
+            ? [
+                {
+                  label: "Sophos transceivers on quote",
+                  value: firewall.includeSophosTransceivers
+                    ? `Yes — ${firewall.sfpTransceiverCount ?? 0}× ${(firewall.sfpTransceiverType ?? "sr").toUpperCase()}`
+                    : "No",
+                },
+              ]
+            : []),
+          {
+            label: "Extra PSU for redundancy",
+            value: firewall.redundantPsuRequired ? "Yes" : "No",
+          },
+        ]
+      : []),
   ];
 }
 

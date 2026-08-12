@@ -19,6 +19,7 @@ import {
   type FirewallFormState,
 } from "@/components/form/form-field";
 import {
+  ACCESSORY_FIELD_TOOLTIPS,
   ENVIRONMENT_TOOLTIPS,
   HA_TOOLTIPS,
   PROTECTION_INCLUDES,
@@ -36,6 +37,7 @@ import {
 import type {
   Environment,
   ProtectionLevel,
+  SfpTransceiverType,
   SiteRole,
   TlsInspectionScope,
   VpnType,
@@ -365,6 +367,80 @@ export function FirewallSiteForm({
         value={value.haRequired}
         onChange={(v) => set("haRequired", v)}
       />
+
+      {value.environment === "physical" && (
+        <>
+          <YesNoField
+            label="Do you require SFP+ ports?"
+            tooltip={ACCESSORY_FIELD_TOOLTIPS.requiresSfpPlus}
+            value={value.requiresSfpPlus}
+            onChange={(v) =>
+              onChange({
+                ...value,
+                requiresSfpPlus: v,
+                includeSophosTransceivers: v
+                  ? value.includeSophosTransceivers
+                  : false,
+              })
+            }
+          />
+          {value.requiresSfpPlus && (
+            <>
+              <YesNoField
+                label="Include Sophos transceivers on the quote?"
+                tooltip={ACCESSORY_FIELD_TOOLTIPS.includeSophosTransceivers}
+                value={value.includeSophosTransceivers}
+                onChange={(v) => set("includeSophosTransceivers", v)}
+              />
+              {value.includeSophosTransceivers && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <LabelWithTooltip
+                      htmlFor={`${idPrefix}-sfpTransceiverType`}
+                      label="SR or LR transceiver *"
+                      tooltip={ACCESSORY_FIELD_TOOLTIPS.sfpTransceiverType}
+                    />
+                    <select
+                      id={`${idPrefix}-sfpTransceiverType`}
+                      className="border-input mt-1.5 flex h-8 w-full rounded-lg border bg-transparent px-2.5 text-sm"
+                      value={value.sfpTransceiverType}
+                      onChange={(e) =>
+                        set(
+                          "sfpTransceiverType",
+                          e.target.value as SfpTransceiverType,
+                        )
+                      }
+                    >
+                      <option value="sr">SR (short-range)</option>
+                      <option value="lr">LR (long-range)</option>
+                    </select>
+                    {errors.sfpTransceiverType && (
+                      <p className="text-destructive mt-1 text-xs">
+                        {errors.sfpTransceiverType.join(", ")}
+                      </p>
+                    )}
+                  </div>
+                  <FormField
+                    id={`${idPrefix}-sfpTransceiverCount`}
+                    label="How many transceivers? *"
+                    tooltip={ACCESSORY_FIELD_TOOLTIPS.sfpTransceiverCount}
+                    type="number"
+                    value={value.sfpTransceiverCount}
+                    onChange={(v) => set("sfpTransceiverCount", v)}
+                    errors={errors.sfpTransceiverCount}
+                  />
+                </div>
+              )}
+            </>
+          )}
+          <YesNoField
+            label="Do you require an extra PSU for redundancy?"
+            tooltip={ACCESSORY_FIELD_TOOLTIPS.redundantPsuRequired}
+            value={value.redundantPsuRequired}
+            onChange={(v) => set("redundantPsuRequired", v)}
+          />
+        </>
+      )}
     </div>
   );
 }

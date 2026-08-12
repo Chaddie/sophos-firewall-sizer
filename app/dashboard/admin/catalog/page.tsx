@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { AccessoryCatalogTable } from "@/components/admin/accessory-catalog-table";
 import { FirewallCatalogTable } from "@/components/admin/firewall-catalog-table";
 import { SwitchCatalogTable } from "@/components/admin/switch-catalog-table";
 import {
@@ -11,16 +12,21 @@ import {
 } from "@/components/ui/card";
 import { getSessionRole } from "@/lib/actions";
 import { isSalesEngineer } from "@/lib/auth-utils";
-import { getFirewallCatalog, getSwitchCatalog } from "@/lib/sizing/catalog-store";
+import {
+  getAccessoryCatalog,
+  getFirewallCatalog,
+  getSwitchCatalog,
+} from "@/lib/sizing/catalog-store";
 
 export default async function CatalogAdminPage() {
   const role = await getSessionRole();
   if (!role) redirect("/login");
   if (!isSalesEngineer(role)) redirect("/dashboard");
 
-  const [firewallModels, switchModels] = await Promise.all([
+  const [firewallModels, switchModels, accessories] = await Promise.all([
     getFirewallCatalog(),
     getSwitchCatalog(),
+    getAccessoryCatalog(),
   ]);
 
   return (
@@ -44,8 +50,8 @@ export default async function CatalogAdminPage() {
               Firewall models
             </CardTitle>
             <CardDescription>
-              Throughput, VPN, and connection limits used to pick Minimum /
-              Recommended / Optimal firewall tiers.
+              Throughput, VPN, connection limits, and optional redundant PSU
+              SKUs used when quoting physical appliances.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -64,6 +70,21 @@ export default async function CatalogAdminPage() {
           </CardHeader>
           <CardContent>
             <SwitchCatalogTable models={switchModels} />
+          </CardContent>
+        </Card>
+
+        <Card className="border-[var(--sophos-grey-2)] shadow-sm">
+          <CardHeader>
+            <CardTitle className="font-heading text-xl font-light">
+              Accessories (SFP+ optics)
+            </CardTitle>
+            <CardDescription>
+              Global SR/LR transceiver SKUs added to firewall quotes when the
+              customer asks for Sophos optics.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AccessoryCatalogTable models={accessories} />
           </CardContent>
         </Card>
       </main>

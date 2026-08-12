@@ -46,6 +46,11 @@ const firewallFieldsSchema = z.object({
   internalTrafficEnabled: z.boolean(),
   internalTrafficMbps: z.coerce.number().min(0).optional(),
   haRequired: z.boolean(),
+  requiresSfpPlus: z.boolean().optional(),
+  includeSophosTransceivers: z.boolean().optional(),
+  sfpTransceiverType: z.enum(["sr", "lr"]).optional(),
+  sfpTransceiverCount: z.coerce.number().min(1).optional(),
+  redundantPsuRequired: z.boolean().optional(),
 });
 
 function refineFirewallFields<T extends z.ZodTypeAny>(schema: T) {
@@ -91,6 +96,26 @@ function refineFirewallFields<T extends z.ZodTypeAny>(schema: T) {
         message: "Required when internal traffic is routed through the firewall",
         path: ["internalTrafficMbps"],
       });
+    }
+    if (
+      d.environment === "physical" &&
+      d.requiresSfpPlus &&
+      d.includeSophosTransceivers
+    ) {
+      if (!d.sfpTransceiverType) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Select SR or LR",
+          path: ["sfpTransceiverType"],
+        });
+      }
+      if (d.sfpTransceiverCount === undefined) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Required when quoting Sophos transceivers",
+          path: ["sfpTransceiverCount"],
+        });
+      }
     }
   });
 }
@@ -156,6 +181,15 @@ export const wirelessSiteSchema = z.object({
   unavailableChannels: z.string().optional(),
   restrictedChannels: z.string().optional(),
 });
+
+export const AP6_MODEL_OPTIONS = [
+  { value: "", label: "No preference" },
+  { value: "AP6 420", label: "AP6 420" },
+  { value: "AP6 420E", label: "AP6 420E (Wi-Fi 6E)" },
+  { value: "AP6 840", label: "AP6 840" },
+  { value: "AP6 840E", label: "AP6 840E (Wi-Fi 6E)" },
+  { value: "AP6 420X", label: "AP6 420X (outdoor)" },
+] as const;
 
 export const siteSubmissionSchema = z
   .object({

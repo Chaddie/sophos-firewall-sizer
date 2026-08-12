@@ -82,6 +82,8 @@ export const firewallModels = pgTable("firewall_models", {
   ramGb: integer("ram_gb"),
   awsInstance: text("aws_instance"),
   azureVmSize: text("azure_vm_size"),
+  redundantPsuSku: text("redundant_psu_sku"),
+  redundantPsuName: text("redundant_psu_name"),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -105,8 +107,19 @@ export const switchModels = pgTable("switch_models", {
     .notNull(),
 });
 
+export const accessoryModels = pgTable("accessory_models", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(),
+  name: text("name").notNull(),
+  sku: text("sku").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type SizingRequest = typeof sizingRequests.$inferSelect;
 export type Submission = typeof submissions.$inferSelect;
 export type FirewallModelRow = typeof firewallModels.$inferSelect;
 export type SwitchModelRow = typeof switchModels.$inferSelect;
+export type AccessoryModelRow = typeof accessoryModels.$inferSelect;

@@ -72,6 +72,14 @@ function buildModelCaveats(
     }
   }
 
+  if (model.poeSupported && model.poeBudgetWatts > 0) {
+    const ap30 = Math.floor(model.poeBudgetWatts / 30);
+    const ap60 = Math.floor(model.poeBudgetWatts / 60);
+    caveats.push(
+      `Can power ~${ap30} Sophos APs at 30W (PoE+) or ~${ap60} at 60W (BT) from this model's ${model.poeBudgetWatts}W PoE budget.`,
+    );
+  }
+
   return caveats;
 }
 

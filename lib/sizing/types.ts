@@ -7,6 +7,8 @@ export type WafLicense = "not_required" | "required";
 export type UserRole = "account_manager" | "sales_engineer";
 export type ProductType = "firewall" | "switch" | "wireless";
 export type WirelessDesignGoal = "capacity" | "coverage";
+export type SfpTransceiverType = "sr" | "lr";
+export type AccessoryType = "sfp_sr" | "sfp_lr";
 
 /** Legacy v1 single-site firewall answers (no schemaVersion field). */
 export interface SizingAnswers {
@@ -29,6 +31,14 @@ export interface SizingAnswers {
   internalTrafficEnabled: boolean;
   internalTrafficMbps?: number;
   haRequired: boolean;
+  /** Physical appliances only — customer needs SFP+ ports. */
+  requiresSfpPlus?: boolean;
+  /** Quote Sophos SFP+ optics when SFP+ ports are required. */
+  includeSophosTransceivers?: boolean;
+  sfpTransceiverType?: SfpTransceiverType;
+  sfpTransceiverCount?: number;
+  /** Quote an extra/redundant PSU for each physical appliance. */
+  redundantPsuRequired?: boolean;
   customerName?: string;
   customerEmail?: string;
 }
@@ -111,6 +121,16 @@ export interface CatalogModel {
   ramGb?: number;
   awsInstance?: string;
   azureVmSize?: string;
+  /** Optional spare/redundant PSU SKU for this physical model. */
+  redundantPsuSku?: string;
+  redundantPsuName?: string;
+}
+
+export interface AccessoryModel {
+  id: string;
+  type: AccessoryType;
+  name: string;
+  sku: string;
 }
 
 export interface SwitchCatalogModel {

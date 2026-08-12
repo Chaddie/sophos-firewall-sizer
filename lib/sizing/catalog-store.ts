@@ -1,10 +1,21 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { isDemoMode } from "@/lib/db/demo-store";
-import { firewallModels, switchModels } from "@/lib/db/schema";
+import {
+  accessoryModels,
+  firewallModels,
+  switchModels,
+} from "@/lib/db/schema";
+import fallbackAccessories from "./accessories.json";
 import fallbackFirewallCatalog from "./catalog.json";
 import fallbackSwitchCatalog from "./switch-catalog.json";
-import type { CatalogModel, Environment, SwitchCatalogModel } from "./types";
+import type {
+  AccessoryModel,
+  AccessoryType,
+  CatalogModel,
+  Environment,
+  SwitchCatalogModel,
+} from "./types";
 
 interface FirewallCatalogFile {
   version: string;
@@ -16,13 +27,20 @@ interface SwitchCatalogFile {
   models: SwitchCatalogModel[];
 }
 
+interface AccessoryCatalogFile {
+  version: string;
+  models: AccessoryModel[];
+}
+
 const staticFirewallCatalog = fallbackFirewallCatalog as FirewallCatalogFile;
 const staticSwitchCatalog = fallbackSwitchCatalog as SwitchCatalogFile;
+const staticAccessoryCatalog = fallbackAccessories as AccessoryCatalogFile;
 
 // In-memory catalog used only in demo mode, so the admin catalog page has
 // something to edit without a real database configured.
 let demoFirewallModels: CatalogModel[] | null = null;
 let demoSwitchModels: SwitchCatalogModel[] | null = null;
+let demoAccessoryModels: AccessoryModel[] | null = null;
 
 function ensureDemoCatalogSeeded() {
   if (!demoFirewallModels) {
@@ -30,6 +48,9 @@ function ensureDemoCatalogSeeded() {
   }
   if (!demoSwitchModels) {
     demoSwitchModels = staticSwitchCatalog.models.map((m) => ({ ...m }));
+  }
+  if (!demoAccessoryModels) {
+    demoAccessoryModels = staticAccessoryCatalog.models.map((m) => ({ ...m }));
   }
 }
 
@@ -53,6 +74,8 @@ function rowToFirewallModel(row: typeof firewallModels.$inferSelect): CatalogMod
     ramGb: row.ramGb ?? undefined,
     awsInstance: row.awsInstance ?? undefined,
     azureVmSize: row.azureVmSize ?? undefined,
+    redundantPsuSku: row.redundantPsuSku ?? undefined,
+    redundantPsuName: row.redundantPsuName ?? undefined,
   };
 }
 
@@ -70,6 +93,17 @@ function rowToSwitchModel(row: typeof switchModels.$inferSelect): SwitchCatalogM
     poeSupported: row.poeSupported,
     poeBudgetWatts: row.poeBudgetWatts,
     supportsBtPoE: row.supportsBtPoE,
+  };
+}
+
+function rowToAccessoryModel(
+  row: typeof accessoryModels.$inferSelect,
+): AccessoryModel {
+  return {
+    id: row.id,
+    type: row.type as AccessoryType,
+    name: row.name,
+    sku: row.sku,
   };
 }
 
@@ -103,8 +137,31 @@ export async function getSwitchCatalog(): Promise<SwitchCatalogModel[]> {
   }
 }
 
+/** Global accessories (SFP+ optics, etc.) — DB-backed with JSON fallback. */
+export async function getAccessoryCatalog(): Promise<AccessoryModel[]> {
+  if (isDemoMode()) {
+    ensureDemoCatalogSeeded();
+    return demoAccessoryModels!;
+  }
+  try {
+    const rows = await getDb().select().from(accessoryModels);
+    if (rows.length === 0) return staticAccessoryCatalog.models;
+    return rows.map(rowToAccessoryModel);
+  } catch {
+    return staticAccessoryCatalog.models;
+  }
+}
+
+export async function getAccessoryByType(
+  type: AccessoryType,
+): Promise<AccessoryModel | null> {
+  const accessories = await getAccessoryCatalog();
+  return accessories.find((a) => a.type === type) ?? null;
+}
+
 export const CATALOG_VERSION = staticFirewallCatalog.version;
 export const SWITCH_CATALOG_VERSION = staticSwitchCatalog.version;
+export const ACCESSORY_CATALOG_VERSION = staticAccessoryCatalog.version;
 
 // --- Admin CRUD (used by the catalog admin page) ---
 
@@ -138,6 +195,8 @@ export async function upsertFirewallModel(model: CatalogModel): Promise<void> {
       ramGb: model.ramGb ?? null,
       awsInstance: model.awsInstance ?? null,
       azureVmSize: model.azureVmSize ?? null,
+      redundantPsuSku: model.redundantPsuSku ?? null,
+      redundantPsuName: model.redundantPsuName ?? null,
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
@@ -160,6 +219,8 @@ export async function upsertFirewallModel(model: CatalogModel): Promise<void> {
         ramGb: model.ramGb ?? null,
         awsInstance: model.awsInstance ?? null,
         azureVmSize: model.azureVmSize ?? null,
+        redundantPsuSku: model.redundantPsuSku ?? null,
+        redundantPsuName: model.redundantPsuName ?? null,
         updatedAt: new Date(),
       },
     });
@@ -199,4 +260,42 @@ export async function deleteSwitchModel(id: string): Promise<void> {
     return;
   }
   await getDb().delete(switchModels).where(eq(switchModels.id, id));
+}
+
+export async function upsertAccessoryModel(model: AccessoryModel): Promise<void> {
+  if (isDemoMode()) {
+    ensureDemoCatalogSeeded();
+    const idx = demoAccessoryModels!.findIndex((m) => m.id === model.id);
+    if (idx >= 0) demoAccessoryModels![idx] = model;
+    else demoAccessoryModels!.push(model);
+    return;
+  }
+
+  await getDb()
+    .insert(accessoryModels)
+    .values({
+      id: model.id,
+      type: model.type,
+      name: model.name,
+      sku: model.sku,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: accessoryModels.id,
+      set: {
+        type: model.type,
+        name: model.name,
+        sku: model.sku,
+        updatedAt: new Date(),
+      },
+    });
+}
+
+export async function deleteAccessoryModel(id: string): Promise<void> {
+  if (isDemoMode()) {
+    ensureDemoCatalogSeeded();
+    demoAccessoryModels = demoAccessoryModels!.filter((m) => m.id !== id);
+    return;
+  }
+  await getDb().delete(accessoryModels).where(eq(accessoryModels.id, id));
 }

@@ -135,6 +135,14 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
           if (fw.internalTrafficEnabled && !fw.internalTrafficMbps) {
             stepErrors[`sites.${i}.internalTrafficMbps`] = ["Required"];
           }
+          if (
+            fw.environment === "physical" &&
+            fw.requiresSfpPlus &&
+            fw.includeSophosTransceivers &&
+            !fw.sfpTransceiverCount
+          ) {
+            stepErrors[`sites.${i}.sfpTransceiverCount`] = ["Required"];
+          }
         }
         if (site.enableSwitches && !site.switches.switchPortCount) {
           stepErrors[`sites.${i}.switchPortCount`] = ["Required"];
@@ -406,6 +414,8 @@ export function SizingWizard({ slug, label }: SizingWizardProps) {
                                 errors[`sites.${index}.authUserCount`],
                               internalTrafficMbps:
                                 errors[`sites.${index}.internalTrafficMbps`],
+                              sfpTransceiverCount:
+                                errors[`sites.${index}.sfpTransceiverCount`],
                             }}
                           />
                         </div>

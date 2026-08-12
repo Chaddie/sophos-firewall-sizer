@@ -3,6 +3,7 @@ import type {
   ProtectionLevel,
   SiteRole,
   SitePlanFile,
+  SfpTransceiverType,
   TlsInspectionScope,
   VpnType,
   WafLicense,
@@ -29,6 +30,11 @@ export interface FirewallFormState {
   internalTrafficEnabled: boolean;
   internalTrafficMbps: string;
   haRequired: boolean;
+  requiresSfpPlus: boolean;
+  includeSophosTransceivers: boolean;
+  sfpTransceiverType: SfpTransceiverType;
+  sfpTransceiverCount: string;
+  redundantPsuRequired: boolean;
 }
 
 export interface SwitchFormState {
@@ -90,6 +96,11 @@ export const defaultFirewallState = (): FirewallFormState => ({
   internalTrafficEnabled: false,
   internalTrafficMbps: "",
   haRequired: false,
+  requiresSfpPlus: false,
+  includeSophosTransceivers: false,
+  sfpTransceiverType: "sr",
+  sfpTransceiverCount: "",
+  redundantPsuRequired: false,
 });
 
 export const defaultSwitchState = (): SwitchFormState => ({
@@ -161,6 +172,25 @@ export function firewallFormToPayload(fw: FirewallFormState) {
       ? Number(fw.internalTrafficMbps)
       : undefined,
     haRequired: fw.haRequired,
+    requiresSfpPlus: fw.environment === "physical" ? fw.requiresSfpPlus : false,
+    includeSophosTransceivers:
+      fw.environment === "physical" && fw.requiresSfpPlus
+        ? fw.includeSophosTransceivers
+        : false,
+    sfpTransceiverType:
+      fw.environment === "physical" &&
+      fw.requiresSfpPlus &&
+      fw.includeSophosTransceivers
+        ? fw.sfpTransceiverType
+        : undefined,
+    sfpTransceiverCount:
+      fw.environment === "physical" &&
+      fw.requiresSfpPlus &&
+      fw.includeSophosTransceivers
+        ? Number(fw.sfpTransceiverCount)
+        : undefined,
+    redundantPsuRequired:
+      fw.environment === "physical" ? fw.redundantPsuRequired : false,
   };
 }
 
