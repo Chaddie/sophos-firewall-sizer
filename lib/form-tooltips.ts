@@ -36,7 +36,7 @@ export const PROTECTION_NOT_INCLUDED = [
 ];
 
 export const XSTREAM_MDR_NOTE =
-  "Mandatory if this firewall is protected by Sophos MDR (Managed Detection and Response) — MDR requires Xstream Protection for full telemetry and threat response.";
+  "If a customer wishes to integrate a Sophos Firewall into the MDR Service, the firewall is required to have Xstream Protection.";
 
 export const ENVIRONMENT_TOOLTIPS: Record<Environment, string> = {
   physical:

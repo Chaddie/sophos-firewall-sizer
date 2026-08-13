@@ -284,7 +284,7 @@ async function buildBom(
     bom.push({
       sku: "ENH-SUPPORT-PLUS",
       description: "Enhanced Support Plus (required for High Availability)",
-      quantity: qty,
+      quantity: 1,
     });
   }
 
