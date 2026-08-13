@@ -140,7 +140,7 @@ export const PROTECTION_TOOLTIPS: Record<ProtectionLevel, string> = {
   standard:
     "Sophos Standard Protection subscription. Network and web threat stack without Zero-Day file sandboxing or Xstream deep packet inspection.",
   xstream:
-    "Sophos Xstream Protection subscription (recommended default). Adds Zero-Day Protection and Xstream deep packet inspection, and sizes on Xstream SSL/TLS throughput — allow extra headroom vs Standard. Mandatory if this firewall has Sophos MDR.",
+    "Sophos Xstream Protection subscription (recommended default). Adds Zero-Day Protection and Xstream deep packet inspection, and sizes on Xstream SSL/TLS throughput — allow extra headroom vs Standard. If a customer wishes to integrate a Sophos Firewall into the MDR Service, the firewall is required to have Xstream Protection.",
 };
 
 export const CONTACT_FIELD_TOOLTIPS = {
