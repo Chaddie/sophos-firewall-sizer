@@ -13,9 +13,14 @@ export function DashboardNav({ showAdmin = false }: { showAdmin?: boolean }) {
           <AppHeaderNavLink href="/dashboard">Requests</AppHeaderNavLink>
           <AppHeaderNavLink href="/dashboard/new">New link</AppHeaderNavLink>
           {showAdmin && (
-            <AppHeaderNavLink href="/dashboard/admin/catalog">
-              Catalog admin
-            </AppHeaderNavLink>
+            <>
+              <AppHeaderNavLink href="/dashboard/admin/catalog">
+                Catalog admin
+              </AppHeaderNavLink>
+              <AppHeaderNavLink href="/dashboard/admin/sizing-logic">
+                Sizing logic
+              </AppHeaderNavLink>
+            </>
           )}
           <a
             href="/guides/account-manager-guide.pdf"
