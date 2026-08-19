@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { InvitePartnerForm } from "@/components/dashboard/invite-partner-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,11 @@ import {
   getDashboardRequests,
   getSessionRole,
 } from "@/lib/actions";
-import { isSalesEngineer } from "@/lib/auth-utils";
+import {
+  creatorAttributionLabel,
+  isPartner,
+  isSalesEngineer,
+} from "@/lib/auth-utils";
 import { buildVanityUrl } from "@/lib/app-url";
 
 export default async function DashboardPage() {
@@ -22,6 +27,7 @@ export default async function DashboardPage() {
     getSessionRole(),
   ]);
   const showCreator = isSalesEngineer(role);
+  const partner = isPartner(role);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -34,14 +40,22 @@ export default async function DashboardPage() {
             </h1>
             <p className="text-muted-foreground text-sm">
               {showCreator
-                ? "All sizing links across the team."
-                : "Your sizing links and customer submissions."}
+                ? "All sizing links across the team and partners."
+                : partner
+                  ? "Your partner sizing links and customer submissions."
+                  : "Your sizing links and customer submissions."}
             </p>
           </div>
           <Link href="/dashboard/new">
             <Button>New link</Button>
           </Link>
         </div>
+
+        {showCreator && (
+          <div className="mb-6">
+            <InvitePartnerForm />
+          </div>
+        )}
 
         {requests.length === 0 ? (
           <Card className="border-[var(--sophos-grey-2)] shadow-sm">
@@ -81,8 +95,11 @@ export default async function DashboardPage() {
                     )}
                     {showCreator && req.createdByName && (
                       <p className="text-muted-foreground mt-1 text-xs">
-                        Created by {req.createdByName}
-                        {req.createdByEmail ? ` (${req.createdByEmail})` : ""}
+                        {creatorAttributionLabel(
+                          req.createdByRole,
+                          req.createdByName,
+                          req.createdByEmail,
+                        )}
                       </p>
                     )}
                   </div>

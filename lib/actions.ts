@@ -183,6 +183,7 @@ export type DashboardRequestRow = {
   contactEmail?: string | null;
   createdByName?: string;
   createdByEmail?: string;
+  createdByRole?: string;
 };
 
 async function enrichDemoRequests(
@@ -196,6 +197,7 @@ async function enrichDemoRequests(
       const creator = await demoStore.users.findById(req.createdById);
       row.createdByName = creator?.name;
       row.createdByEmail = creator?.email;
+      row.createdByRole = creator?.role;
     }
     rows.push(row);
   }
@@ -229,6 +231,7 @@ export async function getDashboardRequests(): Promise<DashboardRequestRow[]> {
         contactEmail: sizingRequests.contactEmail,
         createdByName: users.name,
         createdByEmail: users.email,
+        createdByRole: users.role,
       })
       .from(sizingRequests)
       .innerJoin(users, eq(sizingRequests.createdById, users.id))
@@ -265,10 +268,16 @@ export async function getRequestDetail(id: string) {
     if (!canViewAll && request.createdById !== session.user.id) return null;
 
     const submission = await demoStore.submissions.findByRequestId(request.id);
-    let creator: { name: string; email: string } | null = null;
+    let creator: {
+      name: string;
+      email: string;
+      role: string;
+    } | null = null;
     if (canViewAll) {
       const user = await demoStore.users.findById(request.createdById);
-      if (user) creator = { name: user.name, email: user.email };
+      if (user) {
+        creator = { name: user.name, email: user.email, role: user.role };
+      }
     }
     return { request, submission, creator };
   }
@@ -288,10 +297,10 @@ export async function getRequestDetail(id: string) {
     .where(eq(submissions.requestId, request.id))
     .limit(1);
 
-  let creator: { name: string; email: string } | null = null;
+  let creator: { name: string; email: string; role: string } | null = null;
   if (canViewAll) {
     const [user] = await getDb()
-      .select({ name: users.name, email: users.email })
+      .select({ name: users.name, email: users.email, role: users.role })
       .from(users)
       .where(eq(users.id, request.createdById))
       .limit(1);

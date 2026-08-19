@@ -1,9 +1,12 @@
 import { Suspense } from "react";
 import { AppHeader } from "@/components/brand/app-header";
 import { LoginForm } from "@/components/dashboard/login-form";
+import { getPublicAuthConfig } from "@/lib/auth/config";
 import { sophosBrand } from "@/lib/brand";
 
 export default function LoginPage() {
+  const authConfig = getPublicAuthConfig();
+
   return (
     <>
       <AppHeader />
@@ -16,7 +19,7 @@ export default function LoginPage() {
             <h1 className="font-heading mt-2 text-3xl">Presales sign in</h1>
           </div>
           <Suspense>
-            <LoginForm />
+            <LoginForm authConfig={authConfig} />
           </Suspense>
         </div>
       </div>

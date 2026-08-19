@@ -7,6 +7,7 @@ import {
   text,
   timestamp,
   uuid,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import type {
   StoredAnswers,
@@ -21,14 +22,33 @@ export const requestStatusEnum = pgEnum("request_status", [
 export const userRoleEnum = pgEnum("user_role", [
   "account_manager",
   "sales_engineer",
+  "partner",
 ]);
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
-  passwordHash: text("password_hash").notNull(),
+  /** Null for SSO-provisioned / magic-link users who never set a local password. */
+  passwordHash: text("password_hash"),
   role: userRoleEnum("role").default("account_manager").notNull(),
+  /** Optional SE who invited/sponsors this partner (audit trail). */
+  sponsoredById: uuid("sponsored_by_id").references((): AnyPgColumn => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+/** One-time email magic links for the partner portal. */
+export const partnerMagicLinks = pgTable("partner_magic_links", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull(),
+  name: text("name"),
+  tokenHash: text("token_hash").notNull().unique(),
+  /** SE who invited this partner (applied on first successful sign-in). */
+  sponsoredById: uuid("sponsored_by_id").references((): AnyPgColumn => users.id),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

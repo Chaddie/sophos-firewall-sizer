@@ -10,7 +10,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getRequestDetail, getSessionRole } from "@/lib/actions";
-import { isSalesEngineer } from "@/lib/auth-utils";
+import {
+  creatorAttributionLabel,
+  isSalesEngineer,
+} from "@/lib/auth-utils";
 import { buildVanityUrl } from "@/lib/app-url";
 
 export default async function RequestDetailPage({
@@ -48,7 +51,11 @@ export default async function RequestDetailPage({
             )}
             {showCreator && creator && (
               <p className="text-muted-foreground mt-1 text-xs">
-                Created by {creator.name} ({creator.email})
+                {creatorAttributionLabel(
+                  creator.role,
+                  creator.name,
+                  creator.email,
+                )}
               </p>
             )}
           </div>

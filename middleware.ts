@@ -3,12 +3,14 @@ import { NextResponse } from "next/server";
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
-  const isDashboard = req.nextUrl.pathname.startsWith("/dashboard");
-  const isLogin = req.nextUrl.pathname.startsWith("/login");
+  const path = req.nextUrl.pathname;
+  const isDashboard = path.startsWith("/dashboard");
+  const isLogin = path.startsWith("/login");
+  const isPartner = path === "/partner" || path.startsWith("/partner/");
 
   if (isDashboard && !isLoggedIn) {
     const loginUrl = new URL("/login", req.nextUrl.origin);
-    loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
+    loginUrl.searchParams.set("callbackUrl", path);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -16,9 +18,13 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }
 
+  if (isPartner && isLoggedIn && path === "/partner") {
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
+  }
+
   return NextResponse.next();
 });
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: ["/dashboard/:path*", "/login", "/partner", "/partner/:path*"],
 };

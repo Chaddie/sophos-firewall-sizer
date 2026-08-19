@@ -8,6 +8,7 @@ export interface DemoUser {
   name: string;
   passwordHash: string;
   role: UserRole;
+  sponsoredById?: string | null;
 }
 
 export interface DemoSizingRequest {
@@ -30,9 +31,21 @@ export interface DemoSubmission {
   submittedAt: Date;
 }
 
+export interface DemoPartnerMagicLink {
+  id: string;
+  email: string;
+  name: string | null;
+  tokenHash: string;
+  sponsoredById: string | null;
+  expiresAt: Date;
+  usedAt: Date | null;
+  createdAt: Date;
+}
+
 const users: DemoUser[] = [];
 const sizingRequests: DemoSizingRequest[] = [];
 const submissions: DemoSubmission[] = [];
+const partnerMagicLinks: DemoPartnerMagicLink[] = [];
 
 export const demoStore = {
   users: {
@@ -47,6 +60,52 @@ export const demoStore = {
       if (idx >= 0) users[idx] = user;
       else users.push(user);
       return user;
+    },
+  },
+  partnerMagicLinks: {
+    async create(data: {
+      email: string;
+      name: string | null;
+      tokenHash: string;
+      expiresAt: Date;
+      sponsoredById?: string | null;
+    }) {
+      const row: DemoPartnerMagicLink = {
+        id: randomUUID(),
+        email: data.email.toLowerCase(),
+        name: data.name,
+        tokenHash: data.tokenHash,
+        sponsoredById: data.sponsoredById ?? null,
+        expiresAt: data.expiresAt,
+        usedAt: null,
+        createdAt: new Date(),
+      };
+      partnerMagicLinks.push(row);
+      return row;
+    },
+    async findValid(tokenHash: string, now: Date) {
+      return (
+        partnerMagicLinks.find(
+          (l) =>
+            l.tokenHash === tokenHash &&
+            l.usedAt === null &&
+            l.expiresAt.getTime() > now.getTime(),
+        ) ?? null
+      );
+    },
+    async findRecentlyUsed(tokenHash: string, since: Date) {
+      return (
+        partnerMagicLinks.find(
+          (l) =>
+            l.tokenHash === tokenHash &&
+            l.usedAt !== null &&
+            l.usedAt.getTime() >= since.getTime(),
+        ) ?? null
+      );
+    },
+    async markUsed(id: string) {
+      const row = partnerMagicLinks.find((l) => l.id === id);
+      if (row) row.usedAt = new Date();
     },
   },
   sizingRequests: {
