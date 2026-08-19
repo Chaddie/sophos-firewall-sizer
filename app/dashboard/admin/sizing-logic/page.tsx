@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getSessionRole } from "@/lib/actions";
-import { isSalesEngineer } from "@/lib/auth-utils";
+import { canAccessCatalogAdmin, hasSePrivileges } from "@/lib/auth-utils";
 
 function Formula({ children }: { children: React.ReactNode }) {
   return (
@@ -43,11 +43,14 @@ function Step({
 export default async function SizingLogicPage() {
   const role = await getSessionRole();
   if (!role) redirect("/login");
-  if (!isSalesEngineer(role)) redirect("/dashboard");
+  if (!hasSePrivileges(role)) redirect("/dashboard");
 
   return (
     <div className="flex min-h-full flex-col">
-      <DashboardNav showAdmin />
+      <DashboardNav
+        showAdmin
+        showCatalogAdmin={canAccessCatalogAdmin(role)}
+      />
       <main className="mx-auto w-full max-w-4xl flex-1 space-y-8 bg-[var(--sophos-grey-1)] px-4 py-8">
         <div>
           <h1 className="font-heading text-3xl font-light text-[var(--sophos-navy)]">

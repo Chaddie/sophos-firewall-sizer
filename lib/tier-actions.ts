@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
-import { isSalesEngineer } from "@/lib/auth-utils";
+import { hasSePrivileges } from "@/lib/auth-utils";
 import { getDb } from "@/lib/db";
 import { demoStore, isDemoMode } from "@/lib/db/demo-store";
 import { sizingRequests, submissions } from "@/lib/db/schema";
@@ -33,7 +33,7 @@ export async function setQuotedTierAction(
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
 
-  const canViewAll = isSalesEngineer(session.user.role);
+  const canViewAll = hasSePrivileges(session.user.role);
 
   if (isDemoMode()) {
     const request = await demoStore.sizingRequests.findById(requestId);

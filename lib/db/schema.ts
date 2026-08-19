@@ -23,6 +23,7 @@ export const userRoleEnum = pgEnum("user_role", [
   "account_manager",
   "sales_engineer",
   "partner",
+  "admin",
 ]);
 
 export const users = pgTable("users", {
@@ -216,7 +217,27 @@ export const accessoryModels = pgTable("accessory_models", {
     .notNull(),
 });
 
+/** In-app notifications (e.g. customer submitted a sizing request). */
+export const notifications = pgTable("notifications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  body: text("body"),
+  href: text("href"),
+  requestId: uuid("request_id").references(() => sizingRequests.id, {
+    onDelete: "cascade",
+  }),
+  readAt: timestamp("read_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export type User = typeof users.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
 export type SizingRequest = typeof sizingRequests.$inferSelect;
 export type Submission = typeof submissions.$inferSelect;
 export type FirewallModelRow = typeof firewallModels.$inferSelect;

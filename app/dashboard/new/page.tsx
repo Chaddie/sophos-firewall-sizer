@@ -8,13 +8,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getSessionRole } from "@/lib/actions";
-import { isSalesEngineer } from "@/lib/auth-utils";
+import { canAccessCatalogAdmin, hasSePrivileges } from "@/lib/auth-utils";
 
 export default async function NewRequestPage() {
   const role = await getSessionRole();
   return (
     <div className="flex min-h-full flex-col">
-      <DashboardNav showAdmin={isSalesEngineer(role)} />
+      <DashboardNav
+        showAdmin={hasSePrivileges(role)}
+        showCatalogAdmin={canAccessCatalogAdmin(role)}
+      />
       <main className="mx-auto w-full max-w-2xl flex-1 bg-[var(--sophos-grey-1)] px-4 py-8">
         <Card className="border-[var(--sophos-grey-2)] shadow-sm">
           <CardHeader>

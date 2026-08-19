@@ -3,10 +3,11 @@
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
-import { isSalesEngineer } from "@/lib/auth-utils";
+import { hasSePrivileges } from "@/lib/auth-utils";
 import { getDb } from "@/lib/db";
 import { demoStore, isDemoMode } from "@/lib/db/demo-store";
 import { sizingRequests } from "@/lib/db/schema";
+import { createPendingSeReviewNotifications } from "@/lib/notifications";
 
 async function loadOwnedOrSeRequest(requestId: string) {
   const session = await auth();
@@ -14,7 +15,7 @@ async function loadOwnedOrSeRequest(requestId: string) {
     return { ok: false as const, error: "Unauthorized" };
   }
 
-  const canViewAll = isSalesEngineer(session.user.role);
+  const canViewAll = hasSePrivileges(session.user.role);
 
   if (isDemoMode()) {
     const request = await demoStore.sizingRequests.findById(requestId);
@@ -79,6 +80,12 @@ export async function flagRequestForSeAction(
       })
       .where(eq(sizingRequests.id, requestId));
   }
+
+  await createPendingSeReviewNotifications({
+    label: loaded.request.label,
+    requestId,
+    note: flaggedNote,
+  });
 
   revalidatePath(`/dashboard/${requestId}`);
   revalidatePath("/dashboard");

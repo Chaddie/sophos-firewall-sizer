@@ -7,6 +7,11 @@ export default auth((req) => {
   const isDashboard = path.startsWith("/dashboard");
   const isLogin = path.startsWith("/login");
   const isPartner = path === "/partner" || path.startsWith("/partner/");
+  const isHome = path === "/";
+
+  if (isHome && isLoggedIn) {
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
+  }
 
   if (isDashboard && !isLoggedIn) {
     const loginUrl = new URL("/login", req.nextUrl.origin);
@@ -27,6 +32,7 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
+    "/",
     "/dashboard/:path*",
     "/login",
     "/login/:path*",

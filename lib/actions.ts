@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { isSalesEngineer } from "@/lib/auth-utils";
+import { hasSePrivileges } from "@/lib/auth-utils";
 import { getDb } from "@/lib/db";
 import { demoStore, isDemoMode } from "@/lib/db/demo-store";
 import { ensureDemoSeed } from "@/lib/db/demo-seed";
@@ -13,7 +13,10 @@ import {
 } from "@/lib/sizing/submission-engine";
 import { isV2Answers } from "@/lib/sizing/types";
 import { createRequestSchema, sizingSubmissionSchema } from "@/lib/validations";
-import { notifyCreatorOfSubmission } from "@/lib/notifications";
+import {
+  createSubmissionInAppNotifications,
+  notifyCreatorOfSubmission,
+} from "@/lib/notifications";
 import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -144,6 +147,11 @@ export async function submitSizingForm(slug: string, payloadJson: string) {
         requestId: request.id,
       });
     }
+    await createSubmissionInAppNotifications({
+      createdById: request.createdById,
+      label: request.label,
+      requestId: request.id,
+    });
     revalidatePath(`/dashboard/${request.id}`);
     revalidatePath("/dashboard");
     return { success: true as const };
@@ -191,6 +199,12 @@ export async function submitSizingForm(slug: string, payloadJson: string) {
       requestId: request.id,
     });
   }
+
+  await createSubmissionInAppNotifications({
+    createdById: request.createdById,
+    label: request.label,
+    requestId: request.id,
+  });
 
   revalidatePath(`/dashboard/${request.id}`);
   revalidatePath("/dashboard");
@@ -265,7 +279,7 @@ export async function getDashboardRequests(opts?: {
   const session = await auth();
   if (!session?.user?.id) return [];
 
-  const isSe = isSalesEngineer(session.user.role);
+  const isSe = hasSePrivileges(session.user.role);
   const mineOnly = isSe ? (opts?.mineOnly ?? true) : true;
   const showCreator = isSe;
   const creatorQuery = isSe ? (opts?.creatorQuery?.trim() ?? "") : "";
@@ -361,7 +375,7 @@ export async function getRequestDetail(id: string) {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  const canViewAll = isSalesEngineer(session.user.role);
+  const canViewAll = hasSePrivileges(session.user.role);
 
   if (isDemoMode()) {
     await ensureDemoSeed();

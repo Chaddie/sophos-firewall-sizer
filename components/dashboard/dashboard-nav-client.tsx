@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { AppHeader, AppHeaderNavLink } from "@/components/brand/app-header";
+import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { Button } from "@/components/ui/button";
 
 function initialsFromUser(name: string | null, email: string | null): string {
@@ -18,6 +19,7 @@ function initialsFromUser(name: string | null, email: string | null): string {
 }
 
 function roleLabel(role: string | null): string | null {
+  if (role === "admin") return "Admin";
   if (role === "sales_engineer") return "Sales Engineer";
   if (role === "account_manager") return "Account Manager";
   if (role === "partner") return "Partner";
@@ -26,11 +28,13 @@ function roleLabel(role: string | null): string | null {
 
 export function DashboardNavClient({
   showAdmin = false,
+  showCatalogAdmin = false,
   userName,
   userEmail,
   userRole,
 }: {
   showAdmin?: boolean;
+  showCatalogAdmin?: boolean;
   userName: string | null;
   userEmail: string | null;
   userRole: string | null;
@@ -50,13 +54,15 @@ export function DashboardNavClient({
               <AppHeaderNavLink href="/dashboard/partners">
                 Partners
               </AppHeaderNavLink>
-              <AppHeaderNavLink href="/dashboard/admin/catalog">
-                Catalog admin
-              </AppHeaderNavLink>
               <AppHeaderNavLink href="/dashboard/admin/sizing-logic">
                 Sizing logic
               </AppHeaderNavLink>
             </>
+          )}
+          {showCatalogAdmin && (
+            <AppHeaderNavLink href="/dashboard/admin/catalog">
+              Catalog admin
+            </AppHeaderNavLink>
           )}
           <a
             href="/guides/account-manager-guide.pdf"
@@ -70,6 +76,7 @@ export function DashboardNavClient({
       }
       actions={
         <div className="flex items-center gap-3">
+          <NotificationBell />
           {role && (
             <span className="hidden rounded-full border border-white/25 px-2.5 py-0.5 text-[11px] tracking-wide text-white/85 sm:inline">
               {role}

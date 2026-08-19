@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
-import { isSalesEngineer } from "@/lib/auth-utils";
+import { canAccessCatalogAdmin } from "@/lib/auth-utils";
 import {
   parseAccessoryCsv,
   parseFirewallCsv,
@@ -26,11 +26,11 @@ import type {
   SwitchCatalogModel,
 } from "@/lib/sizing/types";
 
-async function requireSalesEngineer() {
+async function requireAdmin() {
   const session = await auth();
-  if (!session?.user?.id || !isSalesEngineer(session.user.role)) {
+  if (!session?.user?.id || !canAccessCatalogAdmin(session.user.role)) {
     throw new Error(
-      "Unauthorized — catalog management is restricted to sales engineers",
+      "Unauthorized — catalog management is restricted to admins",
     );
   }
 }
@@ -55,7 +55,7 @@ function csvTooLarge(csvText: string): string | null {
 }
 
 export async function saveFirewallModelAction(model: CatalogModel) {
-  await requireSalesEngineer();
+  await requireAdmin();
 
   if (!model.id.trim()) return { error: "Model ID is required" };
   if (!model.name.trim()) return { error: "Model name is required" };
@@ -75,14 +75,14 @@ export async function saveFirewallModelAction(model: CatalogModel) {
 }
 
 export async function removeFirewallModelAction(id: string) {
-  await requireSalesEngineer();
+  await requireAdmin();
   await deleteFirewallModel(id);
   revalidatePath("/dashboard/admin/catalog");
   return { success: true as const };
 }
 
 export async function saveSwitchModelAction(model: SwitchCatalogModel) {
-  await requireSalesEngineer();
+  await requireAdmin();
 
   if (!model.id.trim()) return { error: "Model ID is required" };
   if (!model.name.trim()) return { error: "Model name is required" };
@@ -99,14 +99,14 @@ export async function saveSwitchModelAction(model: SwitchCatalogModel) {
 }
 
 export async function removeSwitchModelAction(id: string) {
-  await requireSalesEngineer();
+  await requireAdmin();
   await deleteSwitchModel(id);
   revalidatePath("/dashboard/admin/catalog");
   return { success: true as const };
 }
 
 export async function saveAccessoryModelAction(model: AccessoryModel) {
-  await requireSalesEngineer();
+  await requireAdmin();
 
   if (!model.id.trim()) return { error: "Accessory ID is required" };
   if (!model.name.trim()) return { error: "Name is required" };
@@ -126,7 +126,7 @@ export async function saveAccessoryModelAction(model: AccessoryModel) {
 }
 
 export async function removeAccessoryModelAction(id: string) {
-  await requireSalesEngineer();
+  await requireAdmin();
   await deleteAccessoryModel(id);
   revalidatePath("/dashboard/admin/catalog");
   return { success: true as const };
@@ -135,7 +135,7 @@ export async function removeAccessoryModelAction(id: string) {
 export async function importFirewallCsvAction(
   csvText: string,
 ): Promise<CatalogImportResult> {
-  await requireSalesEngineer();
+  await requireAdmin();
 
   const sizeError = csvTooLarge(csvText);
   if (sizeError) {
@@ -196,7 +196,7 @@ export async function importFirewallCsvAction(
 export async function importSwitchCsvAction(
   csvText: string,
 ): Promise<CatalogImportResult> {
-  await requireSalesEngineer();
+  await requireAdmin();
 
   const sizeError = csvTooLarge(csvText);
   if (sizeError) {
@@ -256,7 +256,7 @@ export async function importSwitchCsvAction(
 export async function importAccessoryCsvAction(
   csvText: string,
 ): Promise<CatalogImportResult> {
-  await requireSalesEngineer();
+  await requireAdmin();
 
   const sizeError = csvTooLarge(csvText);
   if (sizeError) {

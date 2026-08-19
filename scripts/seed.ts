@@ -7,7 +7,7 @@ async function upsertUser(
   email: string,
   password: string,
   name: string,
-  role: "account_manager" | "sales_engineer",
+  role: "account_manager" | "sales_engineer" | "admin",
 ) {
   const [existing] = await db
     .select()

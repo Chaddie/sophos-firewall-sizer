@@ -3,7 +3,7 @@ import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { AccountSecurityForms } from "@/components/dashboard/account-security-forms";
 import { getAccountSecurityState } from "@/lib/account-actions";
 import { getSessionRole } from "@/lib/actions";
-import { isSalesEngineer } from "@/lib/auth-utils";
+import { canAccessCatalogAdmin, hasSePrivileges } from "@/lib/auth-utils";
 
 export default async function ProfilePage() {
   const [role, state] = await Promise.all([
@@ -15,7 +15,10 @@ export default async function ProfilePage() {
 
   return (
     <div className="flex min-h-full flex-col">
-      <DashboardNav showAdmin={isSalesEngineer(role)} />
+      <DashboardNav
+        showAdmin={hasSePrivileges(role)}
+        showCatalogAdmin={canAccessCatalogAdmin(role)}
+      />
       <main className="mx-auto w-full max-w-3xl flex-1 bg-[var(--sophos-grey-1)] px-4 py-8">
         <div className="mb-8">
           <h1 className="font-heading text-3xl font-light text-[var(--sophos-navy)]">

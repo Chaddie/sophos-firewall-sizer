@@ -13,7 +13,8 @@ import {
 import { getRequestDetail, getSessionRole } from "@/lib/actions";
 import {
   creatorAttributionLabel,
-  isSalesEngineer,
+  canAccessCatalogAdmin,
+  hasSePrivileges,
 } from "@/lib/auth-utils";
 import { buildVanityUrl } from "@/lib/app-url";
 
@@ -32,14 +33,17 @@ export default async function RequestDetailPage({
 
   const { request, submission, creator } = data;
   const vanityUrl = buildVanityUrl(request.slug);
-  const showCreator = isSalesEngineer(role);
+  const showCreator = hasSePrivileges(role);
   const expired =
     request.expiresAt !== null && request.expiresAt < new Date();
   const contactDomain = request.contactEmail?.split("@")[1];
 
   return (
     <div className="flex min-h-full flex-col">
-      <DashboardNav showAdmin={showCreator} />
+      <DashboardNav
+        showAdmin={showCreator}
+        showCatalogAdmin={canAccessCatalogAdmin(role)}
+      />
       <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 bg-[var(--sophos-grey-1)] px-4 py-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -73,7 +77,7 @@ export default async function RequestDetailPage({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {request.reviewStatus === "flagged" && (
-              <Badge variant="outline">Flagged for SE</Badge>
+              <Badge variant="outline">Pending SE Review</Badge>
             )}
             {request.reviewStatus === "reviewed" && (
               <Badge variant="outline">Reviewed</Badge>
@@ -116,9 +120,9 @@ export default async function RequestDetailPage({
                 Awaiting customer submission
               </CardTitle>
               <CardDescription>
-                Share the link above with your customer. You will be emailed when
-                they submit (when email delivery is configured). The
-                recommendation appears here after submit.
+                Share the link above with your customer. You will get an
+                in-app notification (and email when configured) when they
+                submit. The recommendation appears here after submit.
               </CardDescription>
             </CardHeader>
           </Card>

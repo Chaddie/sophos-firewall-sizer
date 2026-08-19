@@ -187,7 +187,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       user.role = resolved.role;
       return true;
     },
-    async jwt({ token, user, account, trigger }) {
+    async jwt({ token, user, account }) {
       if (user && isPasswordlessProvider(account?.provider)) {
         token.id = user.id;
         token.role = user.role ?? "account_manager";
@@ -210,7 +210,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
 
-      if (trigger === "update" && token.id && !isDemoMode()) {
+      // Refresh role from DB so role changes (e.g. promote to admin) apply without a full re-login.
+      if (token.id && !isDemoMode()) {
         const [row] = await getDb()
           .select({ role: users.role })
           .from(users)

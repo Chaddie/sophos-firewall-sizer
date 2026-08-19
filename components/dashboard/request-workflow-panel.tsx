@@ -75,7 +75,7 @@ export function RequestWorkflowPanel({
 
   const reviewLabel =
     reviewStatus === "flagged"
-      ? "Flagged for SE"
+      ? "Pending SE Review"
       : reviewStatus === "reviewed"
         ? "Reviewed by SE"
         : reviewStatus === "needs_changes"

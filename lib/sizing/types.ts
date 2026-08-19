@@ -4,7 +4,11 @@ export type SiteRole = "hq" | "branch" | "datacenter" | "cloud_edge";
 export type VpnType = "none" | "ipsec" | "ssl" | "both";
 export type TlsInspectionScope = "full" | "selective" | "minimal";
 export type WafLicense = "not_required" | "required";
-export type UserRole = "account_manager" | "sales_engineer" | "partner";
+export type UserRole =
+  | "account_manager"
+  | "sales_engineer"
+  | "partner"
+  | "admin";
 export type ProductType = "firewall" | "switch" | "wireless";
 export type WirelessDesignGoal = "capacity" | "coverage";
 export type SfpTransceiverType = "sr" | "lr";

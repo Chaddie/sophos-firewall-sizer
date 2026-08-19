@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { auth } from "@/lib/auth";
-import { isSalesEngineer } from "@/lib/auth-utils";
+import { hasSePrivileges } from "@/lib/auth-utils";
 import { createPartnerMagicLink } from "@/lib/auth/partner-magic-link";
 import { isEmailAllowedForPartner } from "@/lib/auth/partner-config";
 import { partnerMagicLinkEmail, sendEmail } from "@/lib/email/send";
@@ -79,7 +79,7 @@ export async function invitePartnerMagicLink(input: {
   name?: string;
 }): Promise<RequestPartnerMagicLinkResult> {
   const session = await auth();
-  if (!session?.user?.id || !isSalesEngineer(session.user.role)) {
+  if (!session?.user?.id || !hasSePrivileges(session.user.role)) {
     return { ok: false, error: "Only sales engineers can invite partners." };
   }
 

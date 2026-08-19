@@ -16,11 +16,14 @@ import {
 } from "@/lib/actions";
 import {
   creatorAttributionLabel,
+  canAccessCatalogAdmin,
+  hasSePrivileges,
   isPartner,
-  isSalesEngineer,
 } from "@/lib/auth-utils";
 import { buildVanityUrl } from "@/lib/app-url";
 import { cn } from "@/lib/utils";
+import { getMyNotifications } from "@/lib/notification-actions";
+import { UnreadNotificationsBanner } from "@/components/dashboard/unread-notifications-banner";
 
 function isExpired(expiresAt: Date | null) {
   return Boolean(expiresAt && expiresAt < new Date());
@@ -33,7 +36,7 @@ export default async function DashboardPage({
 }) {
   const params = await searchParams;
   const role = await getSessionRole();
-  const showCreator = isSalesEngineer(role);
+  const showCreator = hasSePrivileges(role);
   const partner = isPartner(role);
   const scope: "mine" | "all" =
     showCreator && params.scope === "all" ? "all" : "mine";
@@ -44,16 +47,23 @@ export default async function DashboardPage({
       ? params.status
       : "all";
 
-  const requests = await getDashboardRequests({
-    mineOnly,
-    creatorQuery,
-    status,
-  });
+  const [requests, unreadNotifications] = await Promise.all([
+    getDashboardRequests({
+      mineOnly,
+      creatorQuery,
+      status,
+    }),
+    getMyNotifications({ unreadOnly: true, limit: 5 }),
+  ]);
 
   return (
     <div className="flex min-h-full flex-col">
-      <DashboardNav showAdmin={showCreator} />
+      <DashboardNav
+        showAdmin={showCreator}
+        showCatalogAdmin={canAccessCatalogAdmin(role)}
+      />
       <main className="mx-auto w-full max-w-6xl flex-1 bg-[var(--sophos-grey-1)] px-4 py-8">
+        <UnreadNotificationsBanner notifications={unreadNotifications} />
         <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="font-heading text-3xl font-light text-[var(--sophos-navy)]">
@@ -169,7 +179,7 @@ export default async function DashboardPage({
                     </div>
                     <div className="flex items-center gap-2">
                       {req.reviewStatus === "flagged" && (
-                        <Badge variant="outline">Flagged</Badge>
+                        <Badge variant="outline">Pending SE Review</Badge>
                       )}
                       {req.reviewStatus === "reviewed" && (
                         <Badge variant="outline">Reviewed</Badge>

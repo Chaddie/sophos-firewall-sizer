@@ -84,6 +84,18 @@ export interface DemoPasskeyLoginTicket {
   usedAt: Date | null;
 }
 
+export interface DemoNotification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  body: string | null;
+  href: string | null;
+  requestId: string | null;
+  readAt: Date | null;
+  createdAt: Date;
+}
+
 const users: DemoUser[] = [];
 const sizingRequests: DemoSizingRequest[] = [];
 const submissions: DemoSubmission[] = [];
@@ -92,6 +104,7 @@ const passwordResetTokenRows: DemoPasswordResetToken[] = [];
 const passkeyRows: DemoPasskey[] = [];
 const webauthnChallengeRows: DemoWebauthnChallenge[] = [];
 const passkeyLoginTicketRows: DemoPasskeyLoginTicket[] = [];
+const notificationRows: DemoNotification[] = [];
 
 export const demoStore = {
   users: {
@@ -101,11 +114,69 @@ export const demoStore = {
     async findById(id: string) {
       return users.find((u) => u.id === id) ?? null;
     },
+    async listByRoles(roles: UserRole[]) {
+      return users.filter((u) => roles.includes(u.role));
+    },
     async upsert(user: DemoUser) {
       const idx = users.findIndex((u) => u.email === user.email);
       if (idx >= 0) users[idx] = user;
       else users.push(user);
       return user;
+    },
+  },
+  notifications: {
+    async create(data: {
+      userId: string;
+      type: string;
+      title: string;
+      body?: string | null;
+      href?: string | null;
+      requestId?: string | null;
+    }) {
+      const row: DemoNotification = {
+        id: randomUUID(),
+        userId: data.userId,
+        type: data.type,
+        title: data.title,
+        body: data.body ?? null,
+        href: data.href ?? null,
+        requestId: data.requestId ?? null,
+        readAt: null,
+        createdAt: new Date(),
+      };
+      notificationRows.push(row);
+      return row;
+    },
+    async listByUser(
+      userId: string,
+      opts?: { unreadOnly?: boolean; limit?: number },
+    ) {
+      let rows = notificationRows.filter((n) => n.userId === userId);
+      if (opts?.unreadOnly) rows = rows.filter((n) => n.readAt === null);
+      rows = [...rows].sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+      );
+      if (opts?.limit) rows = rows.slice(0, opts.limit);
+      return rows;
+    },
+    async countUnread(userId: string) {
+      return notificationRows.filter(
+        (n) => n.userId === userId && n.readAt === null,
+      ).length;
+    },
+    async markRead(userId: string, notificationId: string) {
+      const row = notificationRows.find(
+        (n) => n.id === notificationId && n.userId === userId,
+      );
+      if (row) row.readAt = new Date();
+    },
+    async markAllRead(userId: string) {
+      const now = new Date();
+      for (const row of notificationRows) {
+        if (row.userId === userId && row.readAt === null) {
+          row.readAt = now;
+        }
+      }
     },
   },
   passwordResetTokens: {

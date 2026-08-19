@@ -23,6 +23,14 @@ export async function ensureDemoSeed() {
     role: "sales_engineer",
   });
 
+  await demoStore.users.upsert({
+    id: "demo-ops",
+    email: "ops@example.com",
+    name: "Demo Catalog Admin",
+    passwordHash,
+    role: "admin",
+  });
+
   const existing = await demoStore.sizingRequests.findBySlug("demo-review");
   if (!existing) {
     await demoStore.sizingRequests.create({

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { isDemoMode } from "@/lib/db/demo-store";
 import { sophosBrand } from "@/lib/brand";
@@ -9,6 +10,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default async function HomePage() {
   const session = await auth();
+  if (session) {
+    redirect("/dashboard");
+  }
+
   const demoMode = isDemoMode();
 
   return (
@@ -28,6 +33,8 @@ export default async function HomePage() {
                   <strong>admin@example.com</strong> /{" "}
                   <strong>changeme123</strong>. Sales engineer:{" "}
                   <strong>se@example.com</strong> /{" "}
+                  <strong>changeme123</strong>. Catalog admin:{" "}
+                  <strong>ops@example.com</strong> /{" "}
                   <strong>changeme123</strong>. Try the customer form at{" "}
                   <Link
                     href="/r/demo-review"
@@ -60,19 +67,11 @@ export default async function HomePage() {
             </div>
 
             <div className="flex flex-col justify-center gap-3 sm:flex-row">
-              {session ? (
-                <Link href="/dashboard">
-                  <Button size="lg" className="min-w-44">
-                    Go to dashboard
-                  </Button>
-                </Link>
-              ) : (
-                <Link href="/login">
-                  <Button size="lg" className="min-w-44">
-                    Presales sign in
-                  </Button>
-                </Link>
-              )}
+              <Link href="/login">
+                <Button size="lg" className="min-w-44">
+                  Presales sign in
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
