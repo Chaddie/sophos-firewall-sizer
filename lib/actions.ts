@@ -13,7 +13,7 @@ import {
 } from "@/lib/sizing/submission-engine";
 import { isV2Answers } from "@/lib/sizing/types";
 import { createRequestSchema, sizingSubmissionSchema } from "@/lib/validations";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -205,21 +205,78 @@ async function enrichDemoRequests(
   return rows;
 }
 
-export async function getDashboardRequests(): Promise<DashboardRequestRow[]> {
+function matchesCreatorQuery(
+  name: string | undefined,
+  email: string | undefined,
+  query: string,
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return Boolean(
+    name?.toLowerCase().includes(q) || email?.toLowerCase().includes(q),
+  );
+}
+
+export async function getDashboardRequests(opts?: {
+  /** SE only: when true (default), limit to the signed-in user's requests. */
+  mineOnly?: boolean;
+  /** SE only: filter by AM/partner name or email (substring, case-insensitive). */
+  creatorQuery?: string;
+}): Promise<DashboardRequestRow[]> {
   const session = await auth();
   if (!session?.user?.id) return [];
 
-  const showCreator = isSalesEngineer(session.user.role);
+  const isSe = isSalesEngineer(session.user.role);
+  const mineOnly = isSe ? (opts?.mineOnly ?? true) : true;
+  const showCreator = isSe;
+  const creatorQuery = isSe ? (opts?.creatorQuery?.trim() ?? "") : "";
+  const escapedQuery = creatorQuery.replace(/[%_\\]/g, "\\$&");
 
   if (isDemoMode()) {
     await ensureDemoSeed();
-    const requests = showCreator
-      ? await demoStore.sizingRequests.listAll()
-      : await demoStore.sizingRequests.listByUser(session.user.id);
-    return enrichDemoRequests(requests, showCreator);
+    const requests = mineOnly
+      ? await demoStore.sizingRequests.listByUser(session.user.id)
+      : await demoStore.sizingRequests.listAll();
+    const enriched = await enrichDemoRequests(requests, showCreator);
+    if (!creatorQuery) return enriched;
+    return enriched.filter((row) =>
+      matchesCreatorQuery(row.createdByName, row.createdByEmail, creatorQuery),
+    );
   }
 
-  if (showCreator) {
+  const creatorFilter =
+    escapedQuery.length > 0
+      ? or(
+          ilike(users.name, `%${escapedQuery}%`),
+          ilike(users.email, `%${escapedQuery}%`),
+        )
+      : undefined;
+
+  if (showCreator && !mineOnly) {
+    const query = getDb()
+      .select({
+        id: sizingRequests.id,
+        slug: sizingRequests.slug,
+        label: sizingRequests.label,
+        status: sizingRequests.status,
+        createdAt: sizingRequests.createdAt,
+        expiresAt: sizingRequests.expiresAt,
+        contactName: sizingRequests.contactName,
+        contactEmail: sizingRequests.contactEmail,
+        createdByName: users.name,
+        createdByEmail: users.email,
+        createdByRole: users.role,
+      })
+      .from(sizingRequests)
+      .innerJoin(users, eq(sizingRequests.createdById, users.id));
+
+    const rows = creatorFilter
+      ? await query.where(creatorFilter).orderBy(desc(sizingRequests.createdAt))
+      : await query.orderBy(desc(sizingRequests.createdAt));
+    return rows;
+  }
+
+  if (showCreator && mineOnly) {
     const rows = await getDb()
       .select({
         id: sizingRequests.id,
@@ -236,6 +293,11 @@ export async function getDashboardRequests(): Promise<DashboardRequestRow[]> {
       })
       .from(sizingRequests)
       .innerJoin(users, eq(sizingRequests.createdById, users.id))
+      .where(
+        creatorFilter
+          ? and(eq(sizingRequests.createdById, session.user.id), creatorFilter)
+          : eq(sizingRequests.createdById, session.user.id),
+      )
       .orderBy(desc(sizingRequests.createdAt));
     return rows;
   }
