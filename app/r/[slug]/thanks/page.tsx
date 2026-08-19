@@ -54,14 +54,14 @@ export default async function ThanksPage({
               Thank you
             </CardTitle>
             <CardDescription>
-              Your firewall sizing questionnaire has been submitted successfully.
+              Your Sophos sizing questionnaire has been submitted successfully.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-[var(--sophos-gray)]">
               Your Sophos Account Manager will review your requirements and
               follow up with recommended {recommendedProducts}. You do not
-              need to take any further action.
+              need to take any further action — you can close this window.
             </p>
             <Link href="/">
               <Button variant="outline">Done</Button>

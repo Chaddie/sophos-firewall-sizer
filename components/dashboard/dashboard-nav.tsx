@@ -13,6 +13,7 @@ export async function DashboardNav({
       showAdmin={showAdmin}
       userName={session?.user?.name ?? null}
       userEmail={session?.user?.email ?? null}
+      userRole={session?.user?.role ?? null}
     />
   );
 }

@@ -20,6 +20,13 @@ export interface DemoSizingRequest {
   contactName: string | null;
   contactEmail: string | null;
   expiresAt: Date | null;
+  opportunityId?: string | null;
+  reviewStatus?: string | null;
+  reviewNote?: string | null;
+  flaggedAt?: Date | null;
+  flaggedNote?: string | null;
+  reviewedAt?: Date | null;
+  reviewedById?: string | null;
   createdAt: Date;
 }
 

@@ -212,11 +212,20 @@ export interface SwitchRecommendation {
   bom: BomLineItem[];
 }
 
+export interface WirelessMailtoBase {
+  to: string;
+  subject: string;
+  bodyTemplate: string;
+}
+
 export interface WirelessHandoffSummary {
   siteName: string;
   answers: WirelessSiteAnswers;
   summaryText: string;
-  mailtoUrl: string;
+  /** Unencoded mailto parts; SFDC/timeframe filled in the UI. */
+  mailtoBase?: WirelessMailtoBase;
+  /** Legacy encoded mailto; prefer mailtoBase when present. */
+  mailtoUrl?: string;
 }
 
 export interface SiteRecommendation {

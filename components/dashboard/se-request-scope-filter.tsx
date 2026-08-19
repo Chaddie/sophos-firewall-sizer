@@ -6,10 +6,15 @@ import { useEffect, useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-function buildDashboardHref(scope: "mine" | "all", q: string) {
+function buildDashboardHref(input: {
+  scope: "mine" | "all";
+  q: string;
+  status: "all" | "pending" | "submitted";
+}) {
   const params = new URLSearchParams();
-  if (scope === "all") params.set("scope", "all");
-  const trimmed = q.trim();
+  if (input.scope === "all") params.set("scope", "all");
+  if (input.status !== "all") params.set("status", input.status);
+  const trimmed = input.q.trim();
   if (trimmed) params.set("q", trimmed);
   const qs = params.toString();
   return qs ? `/dashboard?${qs}` : "/dashboard";
@@ -18,9 +23,11 @@ function buildDashboardHref(scope: "mine" | "all", q: string) {
 export function SeRequestScopeFilter({
   scope,
   creatorQuery,
+  status,
 }: {
   scope: "mine" | "all";
   creatorQuery: string;
+  status: "all" | "pending" | "submitted";
 }) {
   const router = useRouter();
   const [query, setQuery] = useState(creatorQuery);
@@ -34,52 +41,76 @@ export function SeRequestScopeFilter({
     const handle = window.setTimeout(() => {
       if (query.trim() === creatorQuery.trim()) return;
       startTransition(() => {
-        router.push(buildDashboardHref(scope, query));
+        router.push(buildDashboardHref({ scope, q: query, status }));
       });
     }, 300);
     return () => window.clearTimeout(handle);
-  }, [query, creatorQuery, scope, router]);
+  }, [query, creatorQuery, scope, status, router]);
+
+  const statuses: Array<"all" | "pending" | "submitted"> = [
+    "all",
+    "pending",
+    "submitted",
+  ];
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div
         className="inline-flex rounded-lg border border-[var(--sophos-grey-2)] bg-white p-0.5 shadow-sm"
         role="group"
-        aria-label="Filter sizing requests"
+        aria-label="Filter by owner"
       >
         <Link
-          href={buildDashboardHref("mine", query)}
+          href={buildDashboardHref({ scope: "mine", q: query, status })}
           className={cn(
             "rounded-md px-3 py-1.5 text-sm transition-colors",
             scope === "mine"
               ? "bg-[var(--sophos-navy)] text-white"
               : "text-[var(--sophos-grey-4)] hover:text-[var(--sophos-navy)]",
           )}
-          aria-current={scope === "mine" ? "page" : undefined}
         >
           My requests
         </Link>
         <Link
-          href={buildDashboardHref("all", query)}
+          href={buildDashboardHref({ scope: "all", q: query, status })}
           className={cn(
             "rounded-md px-3 py-1.5 text-sm transition-colors",
             scope === "all"
               ? "bg-[var(--sophos-navy)] text-white"
               : "text-[var(--sophos-grey-4)] hover:text-[var(--sophos-navy)]",
           )}
-          aria-current={scope === "all" ? "page" : undefined}
         >
           All requests
         </Link>
+      </div>
+      <div
+        className="inline-flex rounded-lg border border-[var(--sophos-grey-2)] bg-white p-0.5 shadow-sm"
+        role="group"
+        aria-label="Filter by status"
+      >
+        {statuses.map((s) => (
+          <Link
+            key={s}
+            href={buildDashboardHref({ scope, q: query, status: s })}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-sm capitalize transition-colors",
+              status === s
+                ? "bg-[var(--sophos-navy)] text-white"
+                : "text-[var(--sophos-grey-4)] hover:text-[var(--sophos-navy)]",
+            )}
+          >
+            {s === "all" ? "Any status" : s}
+          </Link>
+        ))}
       </div>
       <Input
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search AM or Partner…"
-        aria-label="Search by account manager or partner name or email"
+        placeholder="Search creator, customer, contact…"
+        aria-label="Search by creator, customer label, contact, or slug"
         className={cn(
-          "h-8 w-56 border-[var(--sophos-grey-2)] bg-white shadow-sm",
+          "h-8 w-64 border-[var(--sophos-grey-2)] bg-white shadow-sm",
           pending && "opacity-70",
         )}
       />

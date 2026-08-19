@@ -121,7 +121,30 @@ export const sizingRequests = pgTable("sizing_requests", {
   contactName: text("contact_name"),
   contactEmail: text("contact_email"),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
+  /** SFDC / CPQ opportunity identifier for quote handoff. */
+  opportunityId: text("opportunity_id"),
+  /**
+   * SE review workflow: null | flagged | reviewed | needs_changes
+   * AMs flag for SE; SEs set reviewed / needs_changes.
+   */
+  reviewStatus: text("review_status"),
+  reviewNote: text("review_note"),
+  flaggedAt: timestamp("flagged_at", { withTimezone: true }),
+  flaggedNote: text("flagged_note"),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  reviewedById: uuid("reviewed_by_id").references((): AnyPgColumn => users.id),
   createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+/** Customer wizard draft answers (save & resume). */
+export const sizingDrafts = pgTable("sizing_drafts", {
+  requestId: uuid("request_id")
+    .primaryKey()
+    .references(() => sizingRequests.id, { onDelete: "cascade" }),
+  draftJson: jsonb("draft_json").$type<Record<string, unknown>>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
 });

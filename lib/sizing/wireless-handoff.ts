@@ -3,6 +3,9 @@ import { WIRELESS_DESIGN_GOAL_LABELS } from "@/lib/validations";
 
 const WIRELESS_PRESALES_EMAIL = "presalesdesk-wireless@sophos.com";
 
+const SFDC_PLACEHOLDER = "[Account manager to complete SFDC]";
+const TIMEFRAME_PLACEHOLDER = "[Account manager to complete timeframe]";
+
 function line(label: string, value: string | number | undefined) {
   if (value === undefined || value === "") return null;
   return `${label}: ${value}`;
@@ -20,8 +23,8 @@ export function buildWirelessSummary(
     companyLabel ? `Customer: ${companyLabel}` : null,
     `Site: ${siteName}`,
     "",
-    "SFDC opportunity URL: [Account manager to complete]",
-    "Expected timeframe for complete survey plan: [Account manager to complete]",
+    `SFDC opportunity URL: ${SFDC_PLACEHOLDER}`,
+    `Expected timeframe for complete survey plan: ${TIMEFRAME_PLACEHOLDER}`,
     "",
     "Mandatory fields",
     line("Type of facility", answers.facilityType),
@@ -53,18 +56,27 @@ export function buildWirelessSummary(
   return lines.join("\n");
 }
 
+export function buildWirelessMailtoBase(
+  siteName: string,
+  answers: WirelessSiteAnswers,
+  companyLabel?: string,
+) {
+  const subject = `Wireless sizing — ${companyLabel ?? "Customer"} — ${siteName}`;
+  return {
+    to: WIRELESS_PRESALES_EMAIL,
+    subject,
+    bodyTemplate: buildWirelessSummary(siteName, answers, companyLabel),
+  };
+}
+
+/** @deprecated Prefer mailtoBase + client-side SFDC/timeframe fill-in. */
 export function buildWirelessMailtoUrl(
   siteName: string,
   answers: WirelessSiteAnswers,
   companyLabel?: string,
 ): string {
-  const subject = encodeURIComponent(
-    `Wireless sizing — ${companyLabel ?? "Customer"} — ${siteName}`,
-  );
-  const body = encodeURIComponent(
-    buildWirelessSummary(siteName, answers, companyLabel),
-  );
-  return `mailto:${WIRELESS_PRESALES_EMAIL}?subject=${subject}&body=${body}`;
+  const base = buildWirelessMailtoBase(siteName, answers, companyLabel);
+  return `mailto:${base.to}?subject=${encodeURIComponent(base.subject)}&body=${encodeURIComponent(base.bodyTemplate)}`;
 }
 
 export function buildWirelessHandoff(
@@ -73,13 +85,19 @@ export function buildWirelessHandoff(
   companyLabel?: string,
 ) {
   const summaryText = buildWirelessSummary(siteName, answers, companyLabel);
-  const mailtoUrl = buildWirelessMailtoUrl(siteName, answers, companyLabel);
+  const mailtoBase = buildWirelessMailtoBase(siteName, answers, companyLabel);
   return {
     siteName,
     answers,
     summaryText,
-    mailtoUrl,
+    mailtoBase,
+    /** Kept for older stored recommendations / callers. */
+    mailtoUrl: buildWirelessMailtoUrl(siteName, answers, companyLabel),
   };
 }
 
-export { WIRELESS_PRESALES_EMAIL };
+export {
+  WIRELESS_PRESALES_EMAIL,
+  SFDC_PLACEHOLDER,
+  TIMEFRAME_PLACEHOLDER,
+};

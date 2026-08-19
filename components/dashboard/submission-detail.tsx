@@ -1,4 +1,5 @@
 import { CopyQuoteButton } from "@/components/dashboard/copy-quote-button";
+import { ExportQuoteButtons } from "@/components/dashboard/export-quote-buttons";
 import {
   FirewallTierControl,
   SwitchTierControl,
@@ -28,6 +29,8 @@ interface SubmissionDetailProps {
   answers: StoredAnswers;
   recommendation: StoredRecommendation;
   submittedAt: Date;
+  opportunityId?: string | null;
+  label?: string | null;
 }
 
 export function SubmissionDetail({
@@ -35,6 +38,8 @@ export function SubmissionDetail({
   answers,
   recommendation,
   submittedAt,
+  opportunityId,
+  label,
 }: SubmissionDetailProps) {
   const quoteText = formatQuoteSummary(recommendation);
   const formattedAnswers = formatAnswersForDisplay(answers);
@@ -54,7 +59,15 @@ export function SubmissionDetail({
                 {recommendation.sites.length === 1 ? "" : "s"}
               </CardDescription>
             </div>
-            <CopyQuoteButton text={quoteText} />
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <ExportQuoteButtons
+                recommendation={recommendation}
+                quoteText={quoteText}
+                opportunityId={opportunityId}
+                label={label}
+              />
+              <CopyQuoteButton text={quoteText} />
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
@@ -194,9 +207,16 @@ export function SubmissionDetail({
                       {site.wireless.summaryText}
                     </pre>
                     <WirelessHandoffButtons
-                      mailtoUrl={site.wireless.mailtoUrl}
+                      mailtoBase={
+                        site.wireless.mailtoBase ?? {
+                          to: WIRELESS_PRESALES_EMAIL,
+                          subject: `Wireless sizing — ${site.siteName}`,
+                          bodyTemplate: site.wireless.summaryText,
+                        }
+                      }
                       summaryText={site.wireless.summaryText}
                       filename={`wireless-${site.siteName.replace(/\s+/g, "-").toLowerCase()}.txt`}
+                      opportunityId={opportunityId}
                     />
                   </div>
                 )}
@@ -262,7 +282,15 @@ export function SubmissionDetail({
               submission)
             </CardDescription>
           </div>
-          <CopyQuoteButton text={quoteText} />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <ExportQuoteButtons
+              recommendation={recommendation}
+              quoteText={quoteText}
+              opportunityId={opportunityId}
+              label={label}
+            />
+            <CopyQuoteButton text={quoteText} />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">

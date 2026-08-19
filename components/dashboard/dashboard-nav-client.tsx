@@ -17,17 +17,27 @@ function initialsFromUser(name: string | null, email: string | null): string {
   return source.slice(0, 2).toUpperCase();
 }
 
+function roleLabel(role: string | null): string | null {
+  if (role === "sales_engineer") return "Sales Engineer";
+  if (role === "account_manager") return "Account Manager";
+  if (role === "partner") return "Partner";
+  return null;
+}
+
 export function DashboardNavClient({
   showAdmin = false,
   userName,
   userEmail,
+  userRole,
 }: {
   showAdmin?: boolean;
   userName: string | null;
   userEmail: string | null;
+  userRole: string | null;
 }) {
   const initials = initialsFromUser(userName, userEmail);
   const label = userName || userEmail || "Profile";
+  const role = roleLabel(userRole);
 
   return (
     <AppHeader
@@ -37,6 +47,9 @@ export function DashboardNavClient({
           <AppHeaderNavLink href="/dashboard/new">New link</AppHeaderNavLink>
           {showAdmin && (
             <>
+              <AppHeaderNavLink href="/dashboard/partners">
+                Partners
+              </AppHeaderNavLink>
               <AppHeaderNavLink href="/dashboard/admin/catalog">
                 Catalog admin
               </AppHeaderNavLink>
@@ -57,6 +70,11 @@ export function DashboardNavClient({
       }
       actions={
         <div className="flex items-center gap-3">
+          {role && (
+            <span className="hidden rounded-full border border-white/25 px-2.5 py-0.5 text-[11px] tracking-wide text-white/85 sm:inline">
+              {role}
+            </span>
+          )}
           <Link href="/dashboard/new" className="sm:hidden">
             <Button
               size="sm"
