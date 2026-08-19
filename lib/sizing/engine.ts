@@ -1,4 +1,5 @@
 import { CATALOG_VERSION, getAccessoryByType, getFirewallCatalog } from "./catalog-store";
+import { normalizeStoredRecommendation } from "./bom-normalize";
 import type {
   BomLineItem,
   CatalogModel,
@@ -564,16 +565,20 @@ function formatSwitchModelOptionLines(
 export function formatQuoteSummary(
   recommendation: import("./types").StoredRecommendation,
 ): string {
+  const { recommendation: normalized } = normalizeStoredRecommendation(
+    recommendation,
+  );
+
   if (
-    typeof recommendation === "object" &&
-    recommendation !== null &&
-    "schemaVersion" in recommendation &&
-    recommendation.schemaVersion === 2
+    typeof normalized === "object" &&
+    normalized !== null &&
+    "schemaVersion" in normalized &&
+    normalized.schemaVersion === 2
   ) {
-    return formatSubmissionQuoteSummary(recommendation);
+    return formatSubmissionQuoteSummary(normalized);
   }
 
-  const legacy = recommendation as SizingRecommendation;
+  const legacy = normalized as SizingRecommendation;
   const lines = [
     `Recommended model: ${legacy.modelName}`,
     `Environment: ${legacy.environment}`,

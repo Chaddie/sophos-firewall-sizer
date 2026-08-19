@@ -42,10 +42,49 @@ export interface DemoPartnerMagicLink {
   createdAt: Date;
 }
 
+export interface DemoPasswordResetToken {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+  usedAt: Date | null;
+}
+
+export interface DemoPasskey {
+  id: string;
+  userId: string;
+  credentialId: string;
+  publicKey: string;
+  counter: number;
+  transports: string | null;
+  deviceName: string | null;
+  createdAt: Date;
+}
+
+export interface DemoWebauthnChallenge {
+  id: string;
+  challenge: string;
+  userId: string | null;
+  purpose: string;
+  expiresAt: Date;
+}
+
+export interface DemoPasskeyLoginTicket {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+  usedAt: Date | null;
+}
+
 const users: DemoUser[] = [];
 const sizingRequests: DemoSizingRequest[] = [];
 const submissions: DemoSubmission[] = [];
 const partnerMagicLinks: DemoPartnerMagicLink[] = [];
+const passwordResetTokenRows: DemoPasswordResetToken[] = [];
+const passkeyRows: DemoPasskey[] = [];
+const webauthnChallengeRows: DemoWebauthnChallenge[] = [];
+const passkeyLoginTicketRows: DemoPasskeyLoginTicket[] = [];
 
 export const demoStore = {
   users: {
@@ -60,6 +99,143 @@ export const demoStore = {
       if (idx >= 0) users[idx] = user;
       else users.push(user);
       return user;
+    },
+  },
+  passwordResetTokens: {
+    async create(data: {
+      userId: string;
+      tokenHash: string;
+      expiresAt: Date;
+    }) {
+      const row: DemoPasswordResetToken = {
+        id: randomUUID(),
+        userId: data.userId,
+        tokenHash: data.tokenHash,
+        expiresAt: data.expiresAt,
+        usedAt: null,
+      };
+      passwordResetTokenRows.push(row);
+      return row;
+    },
+    async findValid(tokenHash: string, now: Date) {
+      return (
+        passwordResetTokenRows.find(
+          (r) =>
+            r.tokenHash === tokenHash &&
+            r.usedAt === null &&
+            r.expiresAt.getTime() > now.getTime(),
+        ) ?? null
+      );
+    },
+    async markUsed(id: string) {
+      const row = passwordResetTokenRows.find((r) => r.id === id);
+      if (row) row.usedAt = new Date();
+    },
+  },
+  passkeys: {
+    async listByUser(userId: string) {
+      return passkeyRows.filter((p) => p.userId === userId);
+    },
+    async findByCredentialId(credentialId: string) {
+      return passkeyRows.find((p) => p.credentialId === credentialId) ?? null;
+    },
+    async create(data: {
+      userId: string;
+      credentialId: string;
+      publicKey: string;
+      counter: number;
+      transports: string | null;
+      deviceName: string | null;
+    }) {
+      const row: DemoPasskey = {
+        id: randomUUID(),
+        ...data,
+        createdAt: new Date(),
+      };
+      passkeyRows.push(row);
+      return row;
+    },
+    async updateCounter(id: string, counter: number) {
+      const row = passkeyRows.find((p) => p.id === id);
+      if (row) row.counter = counter;
+    },
+    async deleteForUser(userId: string, passkeyId: string) {
+      const idx = passkeyRows.findIndex(
+        (p) => p.id === passkeyId && p.userId === userId,
+      );
+      if (idx < 0) return false;
+      passkeyRows.splice(idx, 1);
+      return true;
+    },
+  },
+  webauthnChallenges: {
+    async create(data: {
+      challenge: string;
+      userId: string | null;
+      purpose: string;
+      expiresAt: Date;
+    }) {
+      const row: DemoWebauthnChallenge = {
+        id: randomUUID(),
+        ...data,
+      };
+      webauthnChallengeRows.push(row);
+      return row;
+    },
+    async findValid(challenge: string, purpose: string, now: Date) {
+      return (
+        webauthnChallengeRows.find(
+          (r) =>
+            r.challenge === challenge &&
+            r.purpose === purpose &&
+            r.expiresAt.getTime() > now.getTime(),
+        ) ?? null
+      );
+    },
+    async delete(id: string) {
+      const idx = webauthnChallengeRows.findIndex((r) => r.id === id);
+      if (idx >= 0) webauthnChallengeRows.splice(idx, 1);
+    },
+  },
+  passkeyLoginTickets: {
+    async create(data: {
+      userId: string;
+      tokenHash: string;
+      expiresAt: Date;
+    }) {
+      const row: DemoPasskeyLoginTicket = {
+        id: randomUUID(),
+        userId: data.userId,
+        tokenHash: data.tokenHash,
+        expiresAt: data.expiresAt,
+        usedAt: null,
+      };
+      passkeyLoginTicketRows.push(row);
+      return row;
+    },
+    async findValid(tokenHash: string, now: Date) {
+      return (
+        passkeyLoginTicketRows.find(
+          (r) =>
+            r.tokenHash === tokenHash &&
+            r.usedAt === null &&
+            r.expiresAt.getTime() > now.getTime(),
+        ) ?? null
+      );
+    },
+    async findRecentlyUsed(tokenHash: string, since: Date) {
+      return (
+        passkeyLoginTicketRows.find(
+          (r) =>
+            r.tokenHash === tokenHash &&
+            r.usedAt !== null &&
+            r.usedAt.getTime() >= since.getTime(),
+        ) ?? null
+      );
+    },
+    async markUsed(id: string) {
+      const row = passkeyLoginTicketRows.find((r) => r.id === id);
+      if (row) row.usedAt = new Date();
     },
   },
   partnerMagicLinks: {

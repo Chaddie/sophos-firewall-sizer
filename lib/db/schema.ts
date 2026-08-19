@@ -39,6 +39,62 @@ export const users = pgTable("users", {
     .notNull(),
 });
 
+/** One-time password reset links. */
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+/** WebAuthn / passkey credentials. */
+export const passkeys = pgTable("passkeys", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  credentialId: text("credential_id").notNull().unique(),
+  publicKey: text("public_key").notNull(),
+  counter: integer("counter").notNull().default(0),
+  transports: text("transports"),
+  deviceName: text("device_name"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+/** Short-lived WebAuthn challenges and post-auth login tickets. */
+export const webauthnChallenges = pgTable("webauthn_challenges", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  challenge: text("challenge").notNull(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+  purpose: text("purpose").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+/** One-time tickets after a successful passkey assertion (for NextAuth). */
+export const passkeyLoginTickets = pgTable("passkey_login_tickets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 /** One-time email magic links for the partner portal. */
 export const partnerMagicLinks = pgTable("partner_magic_links", {
   id: uuid("id").defaultRandom().primaryKey(),

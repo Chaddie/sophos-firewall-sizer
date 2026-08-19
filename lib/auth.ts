@@ -18,9 +18,14 @@ import {
 } from "@/lib/auth/config";
 import { resolveSsoUser } from "@/lib/auth/sso-users";
 import { consumePartnerMagicLink } from "@/lib/auth/partner-magic-link";
+import { consumePasskeyLoginTicket } from "@/lib/auth/passkeys";
 
 function isPasswordlessProvider(provider?: string | null): boolean {
-  return provider === "credentials" || provider === "partner-magic-link";
+  return (
+    provider === "credentials" ||
+    provider === "partner-magic-link" ||
+    provider === "passkey"
+  );
 }
 
 function buildProviders(): Provider[] {
@@ -38,6 +43,29 @@ function buildProviders(): Provider[] {
         const token = credentials?.token;
         if (!token || typeof token !== "string") return null;
         const user = await consumePartnerMagicLink(token);
+        if (!user) return null;
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        };
+      },
+    }),
+  );
+
+  // Passkey login tickets issued after WebAuthn assertion verify.
+  providers.push(
+    Credentials({
+      id: "passkey",
+      name: "Passkey",
+      credentials: {
+        ticket: { label: "Ticket", type: "text" },
+      },
+      async authorize(credentials) {
+        const ticket = credentials?.ticket;
+        if (!ticket || typeof ticket !== "string") return null;
+        const user = await consumePasskeyLoginTicket(ticket);
         if (!user) return null;
         return {
           id: user.id,

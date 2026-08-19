@@ -1,6 +1,7 @@
 import { calculateRecommendation } from "./engine";
 import { calculateSwitchRecommendation } from "./switch-engine";
 import { buildWirelessHandoff } from "./wireless-handoff";
+import { normalizeBomQuantities } from "./bom-normalize";
 import type {
   BomLineItem,
   SiteRecommendation,
@@ -9,6 +10,11 @@ import type {
   SizingSubmissionRecommendation,
 } from "./types";
 import type { SizingSubmissionInput } from "@/lib/validations";
+
+export {
+  normalizeBomQuantities,
+  normalizeStoredRecommendation,
+} from "./bom-normalize";
 
 export function prefixBom(
   items: BomLineItem[],
@@ -34,7 +40,7 @@ export function recomputeConsolidatedBom(
     if (site.firewall) bom.push(...site.firewall.bom);
     if (site.switches) bom.push(...site.switches.bom);
   }
-  return bom;
+  return normalizeBomQuantities(bom);
 }
 
 export function siteInputToSubmission(

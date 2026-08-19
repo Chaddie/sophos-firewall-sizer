@@ -9,6 +9,7 @@ import { sizingRequests, submissions, users } from "@/lib/db/schema";
 import {
   calculateSubmission,
   inputToSubmissionAnswers,
+  normalizeStoredRecommendation,
 } from "@/lib/sizing/submission-engine";
 import { isV2Answers } from "@/lib/sizing/types";
 import { createRequestSchema, sizingSubmissionSchema } from "@/lib/validations";
@@ -279,6 +280,24 @@ export async function getRequestDetail(id: string) {
         creator = { name: user.name, email: user.email, role: user.role };
       }
     }
+
+    if (submission) {
+      const { recommendation, changed } = normalizeStoredRecommendation(
+        submission.recommendation,
+      );
+      if (changed) {
+        await demoStore.submissions.updateRecommendation(
+          request.id,
+          recommendation,
+        );
+        return {
+          request,
+          submission: { ...submission, recommendation },
+          creator,
+        };
+      }
+    }
+
     return { request, submission, creator };
   }
 
@@ -305,6 +324,23 @@ export async function getRequestDetail(id: string) {
       .where(eq(users.id, request.createdById))
       .limit(1);
     if (user) creator = user;
+  }
+
+  if (submission) {
+    const { recommendation, changed } = normalizeStoredRecommendation(
+      submission.recommendation,
+    );
+    if (changed) {
+      await getDb()
+        .update(submissions)
+        .set({ recommendation })
+        .where(eq(submissions.id, submission.id));
+      return {
+        request,
+        submission: { ...submission, recommendation },
+        creator,
+      };
+    }
   }
 
   return {
