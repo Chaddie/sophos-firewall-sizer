@@ -1,13 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { CatalogCsvImport } from "@/components/admin/catalog-csv-import";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  importAccessoryCsvAction,
   removeAccessoryModelAction,
   saveAccessoryModelAction,
+  type CatalogImportResult,
 } from "@/lib/catalog-actions";
+import {
+  accessoryCsvTemplate,
+  accessoryModelsToCsv,
+} from "@/lib/sizing/catalog-csv";
 import type { AccessoryModel, AccessoryType } from "@/lib/sizing/types";
 
 const ACCESSORY_TYPES: { id: AccessoryType; label: string }[] = [
@@ -132,8 +139,28 @@ export function AccessoryCatalogTable({
     setDeletingId(null);
   }
 
+  function handleImported(result: CatalogImportResult) {
+    const imported = result.models as AccessoryModel[];
+    setItems((prev) => {
+      const byId = new Map(prev.map((m) => [m.id, m]));
+      for (const model of imported) byId.set(model.id, model);
+      return Array.from(byId.values());
+    });
+    setEditingId(null);
+    setAdding(false);
+  }
+
   return (
     <div className="space-y-3">
+      <CatalogCsvImport
+        kindLabel="accessory"
+        formatHint="Columns: id, type (sfp_sr or sfp_lr), name, sku."
+        templateCsv={accessoryCsvTemplate()}
+        exportCsv={accessoryModelsToCsv(items)}
+        filenamePrefix="accessory-catalog"
+        onImport={importAccessoryCsvAction}
+        onImported={handleImported}
+      />
       {items.map((model) =>
         editingId === model.id ? (
           <AccessoryEditor

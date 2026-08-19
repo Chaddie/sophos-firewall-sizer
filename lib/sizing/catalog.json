@@ -16,7 +16,9 @@
       "minUsers": 1,
       "maxUsers": 10,
       "maxConcurrentConnections": 1600000,
-      "sku": "XGS-88W"
+      "sku": "XGS-88W",
+      "redundantPsuSku": "XA1ATCHPS",
+      "redundantPsuName": "Sophos Spare Power Supply (XGS 87/88/107/108)"
     },
     {
       "id": "xgs-108w",
@@ -33,7 +35,9 @@
       "minUsers": 10,
       "maxUsers": 30,
       "maxConcurrentConnections": 4190000,
-      "sku": "XGS-108W"
+      "sku": "XGS-108W",
+      "redundantPsuSku": "XA1ATCHPS",
+      "redundantPsuName": "Sophos Spare Power Supply (XGS 87/88/107/108)"
     },
     {
       "id": "xgs-118w",
@@ -50,7 +54,9 @@
       "minUsers": 30,
       "maxUsers": 60,
       "maxConcurrentConnections": 5500000,
-      "sku": "XGS-118W"
+      "sku": "XGS-118W",
+      "redundantPsuSku": "XA1DTCHPS",
+      "redundantPsuName": "Sophos Spare Power Supply (XGS 116/118/126/128/136/138)"
     },
     {
       "id": "xgs-128w",
@@ -67,7 +73,9 @@
       "minUsers": 60,
       "maxUsers": 100,
       "maxConcurrentConnections": 6000000,
-      "sku": "XGS-128W"
+      "sku": "XGS-128W",
+      "redundantPsuSku": "XA1DTCHPS",
+      "redundantPsuName": "Sophos Spare Power Supply (XGS 116/118/126/128/136/138)"
     },
     {
       "id": "xgs-138",
@@ -84,7 +92,9 @@
       "minUsers": 100,
       "maxUsers": 150,
       "maxConcurrentConnections": 6550000,
-      "sku": "XGS-138"
+      "sku": "XGS-138",
+      "redundantPsuSku": "XA1DTCHPS",
+      "redundantPsuName": "Sophos Spare Power Supply (XGS 116/118/126/128/136/138)"
     },
     {
       "id": "xgs-2100",
@@ -101,7 +111,9 @@
       "minUsers": 150,
       "maxUsers": 500,
       "maxConcurrentConnections": 6500000,
-      "sku": "XGS-2100"
+      "sku": "XGS-2100",
+      "redundantPsuSku": "XSXZT2HEUK",
+      "redundantPsuName": "Sophos XRP2000 External Redundant PSU"
     },
     {
       "id": "xgs-2300",
@@ -118,7 +130,9 @@
       "minUsers": 500,
       "maxUsers": 1000,
       "maxConcurrentConnections": 6500000,
-      "sku": "XGS-2300"
+      "sku": "XGS-2300",
+      "redundantPsuSku": "XSXZT2HEUK",
+      "redundantPsuName": "Sophos XRP2000 External Redundant PSU"
     },
     {
       "id": "xgs-3100",
@@ -135,7 +149,9 @@
       "minUsers": 1000,
       "maxUsers": 2500,
       "maxConcurrentConnections": 12260000,
-      "sku": "XGS-3100"
+      "sku": "XGS-3100",
+      "redundantPsuSku": "XSXZT2HEUK",
+      "redundantPsuName": "Sophos XRP2000 External Redundant PSU"
     },
     {
       "id": "xgs-3300",
@@ -152,7 +168,9 @@
       "minUsers": 2500,
       "maxUsers": 5000,
       "maxConcurrentConnections": 13700000,
-      "sku": "XGS-3300"
+      "sku": "XGS-3300",
+      "redundantPsuSku": "XSXZT2HEUK",
+      "redundantPsuName": "Sophos XRP2000 External Redundant PSU"
     },
     {
       "id": "xgs-4300",
@@ -169,7 +187,9 @@
       "minUsers": 5000,
       "maxUsers": 10000,
       "maxConcurrentConnections": 20000000,
-      "sku": "XGS-4300"
+      "sku": "XGS-4300",
+      "redundantPsuSku": "XSXZT2HEUK",
+      "redundantPsuName": "Sophos XRP2000 External Redundant PSU"
     },
     {
       "id": "xgs-4500",
@@ -186,7 +206,9 @@
       "minUsers": 10000,
       "maxUsers": 20000,
       "maxConcurrentConnections": 22000000,
-      "sku": "XGS-4500"
+      "sku": "XGS-4500",
+      "redundantPsuSku": "XS4ETCHPS",
+      "redundantPsuName": "Sophos Redundant Power Supply (XGS 4500)"
     },
     {
       "id": "xgs-5500",

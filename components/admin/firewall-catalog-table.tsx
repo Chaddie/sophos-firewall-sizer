@@ -1,14 +1,21 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import { CatalogCsvImport } from "@/components/admin/catalog-csv-import";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  importFirewallCsvAction,
   removeFirewallModelAction,
   saveFirewallModelAction,
+  type CatalogImportResult,
 } from "@/lib/catalog-actions";
+import {
+  firewallCsvTemplate,
+  firewallModelsToCsv,
+} from "@/lib/sizing/catalog-csv";
 import type { CatalogModel, Environment } from "@/lib/sizing/types";
 
 const ENVIRONMENTS: { id: Environment; label: string }[] = [
@@ -300,8 +307,28 @@ export function FirewallCatalogTable({
     setAdding(false);
   }
 
+  function handleImported(result: CatalogImportResult) {
+    const imported = result.models as CatalogModel[];
+    setItems((prev) => {
+      const byId = new Map(prev.map((m) => [m.id, m]));
+      for (const model of imported) byId.set(model.id, model);
+      return Array.from(byId.values());
+    });
+    setEditingId(null);
+    setAdding(false);
+  }
+
   return (
     <div className="space-y-3">
+      <CatalogCsvImport
+        kindLabel="firewall"
+        formatHint="Columns match the editor fields; environment values are pipe-separated (physical|virtual|aws|azure)."
+        templateCsv={firewallCsvTemplate()}
+        exportCsv={firewallModelsToCsv(items)}
+        filenamePrefix="firewall-catalog"
+        onImport={importFirewallCsvAction}
+        onImported={handleImported}
+      />
       <div className="overflow-x-auto rounded-lg border border-[var(--sophos-grey-2)]">
         <table className="w-full text-sm">
           <thead className="bg-[var(--sophos-grey-1)] text-left text-xs text-muted-foreground">

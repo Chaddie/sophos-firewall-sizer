@@ -1,14 +1,21 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import { CatalogCsvImport } from "@/components/admin/catalog-csv-import";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  importSwitchCsvAction,
   removeSwitchModelAction,
   saveSwitchModelAction,
+  type CatalogImportResult,
 } from "@/lib/catalog-actions";
+import {
+  switchCsvTemplate,
+  switchModelsToCsv,
+} from "@/lib/sizing/catalog-csv";
 import type { SwitchCatalogModel } from "@/lib/sizing/types";
 
 function emptyModel(): SwitchCatalogModel {
@@ -220,8 +227,28 @@ export function SwitchCatalogTable({
     setAdding(false);
   }
 
+  function handleImported(result: CatalogImportResult) {
+    const imported = result.models as SwitchCatalogModel[];
+    setItems((prev) => {
+      const byId = new Map(prev.map((m) => [m.id, m]));
+      for (const model of imported) byId.set(model.id, model);
+      return Array.from(byId.values());
+    });
+    setEditingId(null);
+    setAdding(false);
+  }
+
   return (
     <div className="space-y-3">
+      <CatalogCsvImport
+        kindLabel="switch"
+        formatHint="Columns match the editor fields; series is 200 or 1000; booleans are true/false."
+        templateCsv={switchCsvTemplate()}
+        exportCsv={switchModelsToCsv(items)}
+        filenamePrefix="switch-catalog"
+        onImport={importSwitchCsvAction}
+        onImported={handleImported}
+      />
       <div className="overflow-x-auto rounded-lg border border-[var(--sophos-grey-2)]">
         <table className="w-full text-sm">
           <thead className="bg-[var(--sophos-grey-1)] text-left text-xs text-muted-foreground">

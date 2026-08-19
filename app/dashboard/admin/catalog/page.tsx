@@ -39,8 +39,9 @@ export default async function CatalogAdminPage() {
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Edit the firewall and switch model specs the sizing engine uses,
-            including real order SKUs. Changes take effect immediately for new
-            submissions and don&apos;t require a deploy.
+            including real order SKUs. Import or export CSV for bulk updates.
+            Changes take effect immediately for new submissions and don&apos;t
+            require a deploy.
           </p>
         </div>
 
