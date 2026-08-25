@@ -10,10 +10,12 @@ function buildDashboardHref(input: {
   scope: "mine" | "all";
   q: string;
   status: "all" | "pending" | "submitted";
+  archive: "active" | "archived";
 }) {
   const params = new URLSearchParams();
   if (input.scope === "all") params.set("scope", "all");
   if (input.status !== "all") params.set("status", input.status);
+  if (input.archive === "archived") params.set("archive", "archived");
   const trimmed = input.q.trim();
   if (trimmed) params.set("q", trimmed);
   const qs = params.toString();
@@ -24,10 +26,14 @@ export function SeRequestScopeFilter({
   scope,
   creatorQuery,
   status,
+  archive = "active",
+  showArchiveFilter = false,
 }: {
   scope: "mine" | "all";
   creatorQuery: string;
   status: "all" | "pending" | "submitted";
+  archive?: "active" | "archived";
+  showArchiveFilter?: boolean;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState(creatorQuery);
@@ -41,11 +47,11 @@ export function SeRequestScopeFilter({
     const handle = window.setTimeout(() => {
       if (query.trim() === creatorQuery.trim()) return;
       startTransition(() => {
-        router.push(buildDashboardHref({ scope, q: query, status }));
+        router.push(buildDashboardHref({ scope, q: query, status, archive }));
       });
     }, 300);
     return () => window.clearTimeout(handle);
-  }, [query, creatorQuery, scope, status, router]);
+  }, [query, creatorQuery, scope, status, archive, router]);
 
   const statuses: Array<"all" | "pending" | "submitted"> = [
     "all",
@@ -61,7 +67,7 @@ export function SeRequestScopeFilter({
         aria-label="Filter by owner"
       >
         <Link
-          href={buildDashboardHref({ scope: "mine", q: query, status })}
+          href={buildDashboardHref({ scope: "mine", q: query, status, archive })}
           className={cn(
             "rounded-md px-3 py-1.5 text-sm transition-colors",
             scope === "mine"
@@ -72,7 +78,7 @@ export function SeRequestScopeFilter({
           My requests
         </Link>
         <Link
-          href={buildDashboardHref({ scope: "all", q: query, status })}
+          href={buildDashboardHref({ scope: "all", q: query, status, archive })}
           className={cn(
             "rounded-md px-3 py-1.5 text-sm transition-colors",
             scope === "all"
@@ -91,7 +97,7 @@ export function SeRequestScopeFilter({
         {statuses.map((s) => (
           <Link
             key={s}
-            href={buildDashboardHref({ scope, q: query, status: s })}
+            href={buildDashboardHref({ scope, q: query, status: s, archive })}
             className={cn(
               "rounded-md px-3 py-1.5 text-sm capitalize transition-colors",
               status === s
@@ -103,6 +109,46 @@ export function SeRequestScopeFilter({
           </Link>
         ))}
       </div>
+      {showArchiveFilter && (
+        <div
+          className="inline-flex rounded-lg border border-[var(--sophos-grey-2)] bg-white p-0.5 shadow-sm"
+          role="group"
+          aria-label="Filter archived"
+        >
+          <Link
+            href={buildDashboardHref({
+              scope,
+              q: query,
+              status,
+              archive: "active",
+            })}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-sm transition-colors",
+              archive === "active"
+                ? "bg-[var(--sophos-navy)] text-white"
+                : "text-[var(--sophos-grey-4)] hover:text-[var(--sophos-navy)]",
+            )}
+          >
+            Active
+          </Link>
+          <Link
+            href={buildDashboardHref({
+              scope,
+              q: query,
+              status,
+              archive: "archived",
+            })}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-sm transition-colors",
+              archive === "archived"
+                ? "bg-[var(--sophos-navy)] text-white"
+                : "text-[var(--sophos-grey-4)] hover:text-[var(--sophos-navy)]",
+            )}
+          >
+            Archived
+          </Link>
+        </div>
+      )}
       <Input
         type="search"
         value={query}

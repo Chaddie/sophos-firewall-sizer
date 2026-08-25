@@ -15,6 +15,7 @@ import {
   creatorAttributionLabel,
   canAccessCatalogAdmin,
   hasSePrivileges,
+  isAdmin,
 } from "@/lib/auth-utils";
 import { buildVanityUrl } from "@/lib/app-url";
 
@@ -34,6 +35,8 @@ export default async function RequestDetailPage({
   const { request, submission, creator } = data;
   const vanityUrl = buildVanityUrl(request.slug);
   const showCreator = hasSePrivileges(role);
+  const admin = isAdmin(role);
+  const archived = Boolean(request.archivedAt);
   const expired =
     request.expiresAt !== null && request.expiresAt < new Date();
   const contactDomain = request.contactEmail?.split("@")[1];
@@ -76,6 +79,7 @@ export default async function RequestDetailPage({
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {archived && <Badge variant="outline">Archived</Badge>}
             {request.reviewStatus === "flagged" && (
               <Badge variant="outline">Pending SE Review</Badge>
             )}
@@ -106,11 +110,13 @@ export default async function RequestDetailPage({
         <RequestWorkflowPanel
           requestId={request.id}
           isSe={showCreator}
+          isAdmin={admin}
           status={request.status}
           reviewStatus={request.reviewStatus ?? null}
           reviewNote={request.reviewNote ?? null}
           flaggedNote={request.flaggedNote ?? null}
           opportunityId={request.opportunityId ?? null}
+          archivedAt={request.archivedAt ?? null}
         />
 
         {!submission ? (

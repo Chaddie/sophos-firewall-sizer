@@ -42,10 +42,24 @@ export default async function PublicFormPage({
 
   const expired =
     request.expiresAt !== null && request.expiresAt < new Date();
+  const archived = Boolean(request.archivedAt);
 
   return (
     <EmailGate slug={slug} hasGate={request.hasContactGate}>
-      {expired ? (
+      {archived ? (
+        <>
+          <AppHeader />
+          <div className="mx-auto max-w-lg flex-1 px-4 py-16">
+            <Alert variant="destructive">
+              <AlertTitle>Link closed</AlertTitle>
+              <AlertDescription>
+                This sizing link has been archived and is no longer available.
+                Please contact your account team if you need a new link.
+              </AlertDescription>
+            </Alert>
+          </div>
+        </>
+      ) : expired ? (
         <>
           <AppHeader />
           <div className="mx-auto max-w-lg flex-1 px-4 py-16">

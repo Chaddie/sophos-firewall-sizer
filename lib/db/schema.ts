@@ -134,6 +134,9 @@ export const sizingRequests = pgTable("sizing_requests", {
   flaggedNote: text("flagged_note"),
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   reviewedById: uuid("reviewed_by_id").references((): AnyPgColumn => users.id),
+  /** Soft-archive: admins can hide submitted requests from default lists. */
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  archivedById: uuid("archived_by_id").references((): AnyPgColumn => users.id),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

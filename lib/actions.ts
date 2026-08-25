@@ -17,7 +17,7 @@ import {
   createSubmissionInAppNotifications,
   notifyCreatorOfSubmission,
 } from "@/lib/notifications";
-import { and, desc, eq, ilike, or } from "drizzle-orm";
+import { and, desc, eq, ilike, isNotNull, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -129,6 +129,9 @@ export async function submitSizingForm(slug: string, payloadJson: string) {
     if (request.status === "submitted") {
       return { error: { _form: ["This form has already been submitted"] } };
     }
+    if (request.archivedAt) {
+      return { error: { _form: ["This sizing link has been archived"] } };
+    }
     if (request.expiresAt && request.expiresAt < new Date()) {
       return { error: { _form: ["This sizing link has expired"] } };
     }
@@ -169,6 +172,10 @@ export async function submitSizingForm(slug: string, payloadJson: string) {
 
   if (request.status === "submitted") {
     return { error: { _form: ["This form has already been submitted"] } };
+  }
+
+  if (request.archivedAt) {
+    return { error: { _form: ["This sizing link has been archived"] } };
   }
 
   if (request.expiresAt && request.expiresAt < new Date()) {
@@ -225,6 +232,7 @@ export type DashboardRequestRow = {
   createdByRole?: string;
   reviewStatus?: string | null;
   opportunityId?: string | null;
+  archivedAt?: Date | null;
 };
 
 async function enrichDemoRequests(
@@ -275,6 +283,11 @@ export async function getDashboardRequests(opts?: {
   creatorQuery?: string;
   /** Filter by request status. */
   status?: "pending" | "submitted" | "all";
+  /**
+   * Archive visibility. Default `active` hides archived rows.
+   * `archived` shows only archived; `all` shows both (admin typically).
+   */
+  archive?: "active" | "archived" | "all";
 }): Promise<DashboardRequestRow[]> {
   const session = await auth();
   if (!session?.user?.id) return [];
@@ -285,7 +298,14 @@ export async function getDashboardRequests(opts?: {
   const creatorQuery = isSe ? (opts?.creatorQuery?.trim() ?? "") : "";
   const statusFilter =
     opts?.status && opts.status !== "all" ? opts.status : undefined;
+  const archiveFilter = opts?.archive ?? "active";
   const escapedQuery = creatorQuery.replace(/[%_\\]/g, "\\$&");
+
+  function matchesArchive(row: { archivedAt?: Date | null }) {
+    if (archiveFilter === "all") return true;
+    if (archiveFilter === "archived") return Boolean(row.archivedAt);
+    return !row.archivedAt;
+  }
 
   if (isDemoMode()) {
     await ensureDemoSeed();
@@ -293,6 +313,7 @@ export async function getDashboardRequests(opts?: {
       ? await demoStore.sizingRequests.listByUser(session.user.id)
       : await demoStore.sizingRequests.listAll();
     let enriched = await enrichDemoRequests(requests, showCreator);
+    enriched = enriched.filter(matchesArchive);
     if (statusFilter) {
       enriched = enriched.filter((r) => r.status === statusFilter);
     }
@@ -316,11 +337,19 @@ export async function getDashboardRequests(opts?: {
     ? eq(sizingRequests.status, statusFilter)
     : undefined;
 
+  const archiveClause =
+    archiveFilter === "archived"
+      ? isNotNull(sizingRequests.archivedAt)
+      : archiveFilter === "all"
+        ? undefined
+        : isNull(sizingRequests.archivedAt);
+
   if (showCreator) {
     const conditions = [];
     if (mineOnly) conditions.push(eq(sizingRequests.createdById, session.user.id));
     if (searchFilter) conditions.push(searchFilter);
     if (statusClause) conditions.push(statusClause);
+    if (archiveClause) conditions.push(archiveClause);
 
     const query = getDb()
       .select({
@@ -337,6 +366,7 @@ export async function getDashboardRequests(opts?: {
         createdByRole: users.role,
         reviewStatus: sizingRequests.reviewStatus,
         opportunityId: sizingRequests.opportunityId,
+        archivedAt: sizingRequests.archivedAt,
       })
       .from(sizingRequests)
       .innerJoin(users, eq(sizingRequests.createdById, users.id));
@@ -352,6 +382,7 @@ export async function getDashboardRequests(opts?: {
 
   const amConditions = [eq(sizingRequests.createdById, session.user.id)];
   if (statusClause) amConditions.push(statusClause);
+  if (archiveClause) amConditions.push(archiveClause);
 
   return getDb()
     .select({
@@ -365,6 +396,7 @@ export async function getDashboardRequests(opts?: {
       contactEmail: sizingRequests.contactEmail,
       reviewStatus: sizingRequests.reviewStatus,
       opportunityId: sizingRequests.opportunityId,
+      archivedAt: sizingRequests.archivedAt,
     })
     .from(sizingRequests)
     .where(and(...amConditions))
@@ -476,6 +508,7 @@ export async function getPublicRequest(slug: string) {
       label: request.label,
       status: request.status,
       expiresAt: request.expiresAt,
+      archivedAt: request.archivedAt ?? null,
       hasContactGate: Boolean(request.contactEmail),
     };
   }
@@ -487,6 +520,7 @@ export async function getPublicRequest(slug: string) {
       label: sizingRequests.label,
       status: sizingRequests.status,
       expiresAt: sizingRequests.expiresAt,
+      archivedAt: sizingRequests.archivedAt,
       contactEmail: sizingRequests.contactEmail,
     })
     .from(sizingRequests)
@@ -494,13 +528,13 @@ export async function getPublicRequest(slug: string) {
     .limit(1);
 
   if (!request) return null;
-
   return {
     id: request.id,
     slug: request.slug,
     label: request.label,
     status: request.status,
     expiresAt: request.expiresAt,
+    archivedAt: request.archivedAt,
     hasContactGate: Boolean(request.contactEmail),
   };
 }

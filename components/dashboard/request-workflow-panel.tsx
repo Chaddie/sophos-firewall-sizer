@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  archiveRequestAction,
   flagRequestForSeAction,
   setReviewStatusAction,
+  unarchiveRequestAction,
   updateOpportunityIdAction,
 } from "@/lib/request-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,25 +17,31 @@ import { Label } from "@/components/ui/label";
 export function RequestWorkflowPanel({
   requestId,
   isSe,
+  isAdmin,
   status,
   reviewStatus,
   reviewNote,
   flaggedNote,
   opportunityId,
+  archivedAt,
 }: {
   requestId: string;
   isSe: boolean;
+  isAdmin: boolean;
   status: "pending" | "submitted";
   reviewStatus: string | null;
   reviewNote: string | null;
   flaggedNote: string | null;
   opportunityId: string | null;
+  archivedAt: Date | string | null;
 }) {
   const router = useRouter();
   const [note, setNote] = useState("");
   const [opp, setOpp] = useState(opportunityId ?? "");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const archived = Boolean(archivedAt);
 
   async function flag() {
     setLoading(true);
@@ -73,6 +81,30 @@ export function RequestWorkflowPanel({
     router.refresh();
   }
 
+  async function archive() {
+    setLoading(true);
+    setError(null);
+    const result = await archiveRequestAction(requestId);
+    setLoading(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    router.refresh();
+  }
+
+  async function unarchive() {
+    setLoading(true);
+    setError(null);
+    const result = await unarchiveRequestAction(requestId);
+    setLoading(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    router.refresh();
+  }
+
   const reviewLabel =
     reviewStatus === "flagged"
       ? "Pending SE Review"
@@ -93,6 +125,11 @@ export function RequestWorkflowPanel({
             Status: {reviewLabel}
             {flaggedNote ? ` — ${flaggedNote}` : ""}
             {reviewNote ? ` — ${reviewNote}` : ""}
+          </p>
+        )}
+        {archived && (
+          <p className="mt-1 text-xs font-medium text-amber-800">
+            Archived — hidden from the default request list.
           </p>
         )}
       </div>
@@ -124,7 +161,7 @@ export function RequestWorkflowPanel({
         </Button>
       </div>
 
-      {status === "submitted" && (
+      {status === "submitted" && !archived && (
         <div className="space-y-2">
           <Label htmlFor="workflowNote">Note (optional)</Label>
           <Input
@@ -168,6 +205,32 @@ export function RequestWorkflowPanel({
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {isAdmin && status === "submitted" && (
+        <div className="border-t border-[var(--sophos-grey-2)] pt-3">
+          {archived ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={loading}
+              onClick={() => void unarchive()}
+            >
+              Unarchive request
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={loading}
+              onClick={() => void archive()}
+            >
+              Archive request
+            </Button>
+          )}
         </div>
       )}
     </div>

@@ -27,6 +27,8 @@ export interface DemoSizingRequest {
   flaggedNote?: string | null;
   reviewedAt?: Date | null;
   reviewedById?: string | null;
+  archivedAt?: Date | null;
+  archivedById?: string | null;
   createdAt: Date;
 }
 
