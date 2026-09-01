@@ -114,9 +114,12 @@ export default async function RequestDetailPage({
           status={request.status}
           reviewStatus={request.reviewStatus ?? null}
           reviewNote={request.reviewNote ?? null}
+          reviewNotes={request.reviewNotes ?? null}
           flaggedNote={request.flaggedNote ?? null}
           opportunityId={request.opportunityId ?? null}
           archivedAt={request.archivedAt ?? null}
+          reviewedAt={request.reviewedAt ?? null}
+          reviewedById={request.reviewedById ?? null}
         />
 
         {!submission ? (
@@ -142,8 +145,7 @@ export default async function RequestDetailPage({
             )}
             {request.reviewStatus === "reviewed" && (
               <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
-                Sales Engineer has marked this recommendation as reviewed
-                {request.reviewNote ? `: ${request.reviewNote}` : "."}
+                Sales Engineer has marked this recommendation as reviewed.
               </p>
             )}
             <SubmissionDetail

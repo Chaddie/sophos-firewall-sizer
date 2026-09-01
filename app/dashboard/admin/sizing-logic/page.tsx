@@ -272,6 +272,11 @@ export default async function SizingLogicPage() {
                   placeholders), doubled for HA
                 </li>
                 <li>
+                  Protection subscription (Standard or Xstream) × appliance
+                  count — one line per firewall model/site based on the
+                  customer’s protection choice
+                </li>
+                <li>
                   HA: Enhanced Support Plus × <strong>1</strong> (one entitlement
                   for the pair)
                 </li>

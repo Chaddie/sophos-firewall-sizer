@@ -6,6 +6,9 @@ import { getDb } from "@/lib/db";
 import { demoStore, isDemoMode } from "@/lib/db/demo-store";
 import { sizingRequests } from "@/lib/db/schema";
 import { createPendingSeReviewNotifications } from "@/lib/notifications";
+import { createSeReviewNote } from "@/lib/sizing/create-review-note";
+import { resolveReviewNotes } from "@/lib/sizing/review-notes";
+import type { SeReviewNote } from "@/lib/sizing/types";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -48,6 +51,68 @@ async function loadOwnedOrSeRequest(requestId: string) {
     canViewAll,
     userId: session.user.id,
   };
+}
+
+function authorFromSession(session: {
+  user?: { id?: string; name?: string | null; email?: string | null };
+}) {
+  return {
+    authorId: session.user?.id ?? "unknown",
+    authorName: session.user?.name?.trim() || "Sales Engineer",
+    authorEmail: session.user?.email ?? null,
+  };
+}
+
+function nextNotesAfterAppend(
+  existing: SeReviewNote[],
+  entry: SeReviewNote,
+): SeReviewNote[] {
+  const materialized = existing.map((n) =>
+    n.id === "legacy"
+      ? createSeReviewNote({
+          body: n.body,
+          authorId: n.authorId,
+          authorName: n.authorName,
+          authorEmail: n.authorEmail,
+          createdAt: new Date(n.createdAt),
+        })
+      : n,
+  );
+  return [...materialized, entry];
+}
+
+async function appendReviewNoteToRequest(
+  requestId: string,
+  loaded: Extract<Awaited<ReturnType<typeof loadOwnedOrSeRequest>>, { ok: true }>,
+  body: string,
+) {
+  const author = authorFromSession(loaded.session);
+  const entry = createSeReviewNote({ body, ...author });
+  const existing = resolveReviewNotes({
+    reviewNotes: loaded.request.reviewNotes,
+    reviewNote: loaded.request.reviewNote,
+    reviewedAt: loaded.request.reviewedAt,
+    reviewedById: loaded.request.reviewedById,
+  });
+  const notes = nextNotesAfterAppend(existing, entry);
+
+  if (isDemoMode()) {
+    const req = await demoStore.sizingRequests.findById(requestId);
+    if (req) {
+      req.reviewNotes = notes;
+      req.reviewNote = entry.body;
+    }
+  } else {
+    await getDb()
+      .update(sizingRequests)
+      .set({
+        reviewNotes: notes,
+        reviewNote: entry.body,
+      })
+      .where(eq(sizingRequests.id, requestId));
+  }
+
+  return entry;
 }
 
 export async function flagRequestForSeAction(
@@ -104,14 +169,17 @@ export async function setReviewStatusAction(
   }
 
   const now = new Date();
-  const reviewNote = note?.trim() || null;
+  const body = note?.trim() || null;
+
+  if (body) {
+    await appendReviewNoteToRequest(requestId, loaded, body);
+  }
 
   if (isDemoMode()) {
     const all = await demoStore.sizingRequests.listAll();
     const row = all.find((r) => r.id === requestId);
     if (row) {
       row.reviewStatus = status;
-      row.reviewNote = reviewNote;
       row.reviewedAt = now;
       row.reviewedById = loaded.userId;
     }
@@ -120,12 +188,36 @@ export async function setReviewStatusAction(
       .update(sizingRequests)
       .set({
         reviewStatus: status,
-        reviewNote,
         reviewedAt: now,
         reviewedById: loaded.userId,
       })
       .where(eq(sizingRequests.id, requestId));
   }
+
+  revalidatePath(`/dashboard/${requestId}`);
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function addSeReviewNoteAction(
+  requestId: string,
+  note: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const loaded = await loadOwnedOrSeRequest(requestId);
+  if (!loaded.ok) return { ok: false, error: loaded.error };
+  if (!loaded.canViewAll) {
+    return { ok: false, error: "Only sales engineers can add review notes." };
+  }
+  if (loaded.request.status !== "submitted") {
+    return { ok: false, error: "Notes are available after submission." };
+  }
+
+  const body = note.trim();
+  if (!body) {
+    return { ok: false, error: "Enter a review note." };
+  }
+
+  await appendReviewNoteToRequest(requestId, loaded, body);
 
   revalidatePath(`/dashboard/${requestId}`);
   revalidatePath("/dashboard");

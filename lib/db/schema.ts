@@ -10,6 +10,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import type {
+  SeReviewNote,
   StoredAnswers,
   StoredRecommendation,
 } from "@/lib/sizing/types";
@@ -129,7 +130,10 @@ export const sizingRequests = pgTable("sizing_requests", {
    * AMs flag for SE; SEs set reviewed / needs_changes.
    */
   reviewStatus: text("review_status"),
+  /** @deprecated Prefer reviewNotes — kept for legacy rows. */
   reviewNote: text("review_note"),
+  /** Chronological SE review notes (author + timestamp). */
+  reviewNotes: jsonb("review_notes").$type<SeReviewNote[]>().default([]),
   flaggedAt: timestamp("flagged_at", { withTimezone: true }),
   flaggedNote: text("flagged_note"),
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),

@@ -281,6 +281,21 @@ async function buildBom(
     }
   }
 
+  // Protection subscription — one per appliance (HA doubles qty), for every site/model.
+  if (answers.protection === "xstream") {
+    bom.push({
+      sku: `${model.sku ?? model.licenseSku ?? model.id.toUpperCase()}-XP`,
+      description: `Sophos Xstream Protection — ${model.name}`,
+      quantity: qty,
+    });
+  } else {
+    bom.push({
+      sku: `${model.sku ?? model.licenseSku ?? model.id.toUpperCase()}-STD`,
+      description: `Sophos Standard Protection — ${model.name}`,
+      quantity: qty,
+    });
+  }
+
   if (answers.haRequired) {
     bom.push({
       sku: "ENH-SUPPORT-PLUS",

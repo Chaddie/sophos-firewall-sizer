@@ -9,6 +9,17 @@ export type UserRole =
   | "sales_engineer"
   | "partner"
   | "admin";
+
+/** One SE review note on a sizing request (append-only thread). */
+export interface SeReviewNote {
+  id: string;
+  body: string;
+  authorId: string;
+  authorName: string;
+  authorEmail?: string | null;
+  createdAt: string;
+}
+
 export type ProductType = "firewall" | "switch" | "wireless";
 export type WirelessDesignGoal = "capacity" | "coverage";
 export type SfpTransceiverType = "sr" | "lr";

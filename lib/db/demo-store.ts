@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import type { UserRole } from "@/lib/sizing/types";
+import type { SeReviewNote } from "@/lib/sizing/types";
 import type { StoredAnswers, StoredRecommendation } from "@/lib/sizing/types";
 
 export interface DemoUser {
@@ -23,6 +24,7 @@ export interface DemoSizingRequest {
   opportunityId?: string | null;
   reviewStatus?: string | null;
   reviewNote?: string | null;
+  reviewNotes?: SeReviewNote[] | null;
   flaggedAt?: Date | null;
   flaggedNote?: string | null;
   reviewedAt?: Date | null;

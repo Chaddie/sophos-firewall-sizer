@@ -3,12 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  addSeReviewNoteAction,
   archiveRequestAction,
   flagRequestForSeAction,
   setReviewStatusAction,
   unarchiveRequestAction,
   updateOpportunityIdAction,
 } from "@/lib/request-actions";
+import {
+  formatSeReviewNotePrefix,
+  resolveReviewNotes,
+} from "@/lib/sizing/review-notes";
+import type { SeReviewNote } from "@/lib/sizing/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,9 +27,12 @@ export function RequestWorkflowPanel({
   status,
   reviewStatus,
   reviewNote,
+  reviewNotes,
   flaggedNote,
   opportunityId,
   archivedAt,
+  reviewedAt,
+  reviewedById,
 }: {
   requestId: string;
   isSe: boolean;
@@ -31,9 +40,12 @@ export function RequestWorkflowPanel({
   status: "pending" | "submitted";
   reviewStatus: string | null;
   reviewNote: string | null;
+  reviewNotes: SeReviewNote[] | null;
   flaggedNote: string | null;
   opportunityId: string | null;
   archivedAt: Date | string | null;
+  reviewedAt?: Date | string | null;
+  reviewedById?: string | null;
 }) {
   const router = useRouter();
   const [note, setNote] = useState("");
@@ -42,6 +54,12 @@ export function RequestWorkflowPanel({
   const [loading, setLoading] = useState(false);
 
   const archived = Boolean(archivedAt);
+  const notes = resolveReviewNotes({
+    reviewNotes,
+    reviewNote,
+    reviewedAt,
+    reviewedById,
+  });
 
   async function flag() {
     setLoading(true);
@@ -60,6 +78,19 @@ export function RequestWorkflowPanel({
     setLoading(true);
     setError(null);
     const result = await setReviewStatusAction(requestId, next, note);
+    setLoading(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setNote("");
+    router.refresh();
+  }
+
+  async function addNote() {
+    setLoading(true);
+    setError(null);
+    const result = await addSeReviewNoteAction(requestId, note);
     setLoading(false);
     if (!result.ok) {
       setError(result.error);
@@ -124,7 +155,6 @@ export function RequestWorkflowPanel({
           <p className="text-muted-foreground mt-1 text-xs">
             Status: {reviewLabel}
             {flaggedNote ? ` — ${flaggedNote}` : ""}
-            {reviewNote ? ` — ${reviewNote}` : ""}
           </p>
         )}
         {archived && (
@@ -161,9 +191,34 @@ export function RequestWorkflowPanel({
         </Button>
       </div>
 
+      {notes.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-[var(--sophos-navy)]">
+            SE review notes
+          </p>
+          <ul className="space-y-2">
+            {notes.map((entry) => (
+              <li
+                key={entry.id}
+                className="rounded-md border border-[var(--sophos-grey-2)] bg-[var(--sophos-grey-1)] px-3 py-2 text-sm"
+              >
+                <p className="text-muted-foreground text-xs">
+                  {formatSeReviewNotePrefix(entry)}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-[var(--sophos-navy)]">
+                  {entry.body}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {status === "submitted" && !archived && (
         <div className="space-y-2">
-          <Label htmlFor="workflowNote">Note (optional)</Label>
+          <Label htmlFor="workflowNote">
+            {isSe ? "SE review note" : "Note (optional)"}
+          </Label>
           <Input
             id="workflowNote"
             value={note}
@@ -185,6 +240,15 @@ export function RequestWorkflowPanel({
             )}
             {isSe && (
               <>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={loading || !note.trim()}
+                  onClick={() => void addNote()}
+                >
+                  Add note
+                </Button>
                 <Button
                   type="button"
                   size="sm"
