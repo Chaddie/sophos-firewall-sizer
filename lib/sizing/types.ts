@@ -65,6 +65,8 @@ export type FirewallSiteAnswers = Omit<
 
 export interface SwitchSiteAnswers {
   switchPortCount: number;
+  /** Number of identical switch units (multi-closet / stack). Defaults to 1. */
+  switchQuantity?: number;
   needs2_5GbE: boolean;
   needs10GbE: boolean;
   needs10GbSfpUplink: boolean;

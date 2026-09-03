@@ -18,6 +18,7 @@ export interface DemoSizingRequest {
   label: string;
   status: "pending" | "submitted";
   createdById: string;
+  alignedSeId?: string | null;
   contactName: string | null;
   contactEmail: string | null;
   expiresAt: Date | null;
@@ -39,7 +40,38 @@ export interface DemoSubmission {
   requestId: string;
   answers: StoredAnswers;
   recommendation: StoredRecommendation;
+  version: number;
   submittedAt: Date;
+}
+
+export interface DemoSubmissionVersion {
+  id: string;
+  requestId: string;
+  version: number;
+  answers: StoredAnswers;
+  recommendation: StoredRecommendation;
+  source: string;
+  createdById: string | null;
+  submittedAt: Date;
+  archivedAt: Date;
+}
+
+export interface DemoCatalogAuditEntry {
+  id: string;
+  actorId: string | null;
+  action: string;
+  entityType: string;
+  entityId: string;
+  summary: string | null;
+  beforeJson: unknown;
+  afterJson: unknown;
+  createdAt: Date;
+}
+
+export interface DemoSizingDraft {
+  requestId: string;
+  draftJson: Record<string, unknown>;
+  updatedAt: Date;
 }
 
 export interface DemoPartnerMagicLink {
@@ -103,6 +135,9 @@ export interface DemoNotification {
 const users: DemoUser[] = [];
 const sizingRequests: DemoSizingRequest[] = [];
 const submissions: DemoSubmission[] = [];
+const submissionVersionRows: DemoSubmissionVersion[] = [];
+const catalogAuditRows: DemoCatalogAuditEntry[] = [];
+const sizingDraftRows: DemoSizingDraft[] = [];
 const partnerMagicLinks: DemoPartnerMagicLink[] = [];
 const passwordResetTokenRows: DemoPasswordResetToken[] = [];
 const passkeyRows: DemoPasskey[] = [];
@@ -401,14 +436,39 @@ export const demoStore = {
     async findByRequestId(requestId: string) {
       return submissions.find((s) => s.requestId === requestId) ?? null;
     },
-    async create(data: Omit<DemoSubmission, "id" | "submittedAt">) {
+    async create(data: Omit<DemoSubmission, "id" | "submittedAt" | "version"> & {
+      version?: number;
+    }) {
       const row: DemoSubmission = {
         ...data,
         id: randomUUID(),
+        version: data.version ?? 1,
         submittedAt: new Date(),
       };
       submissions.push(row);
       return row;
+    },
+    async update(
+      requestId: string,
+      data: {
+        answers: StoredAnswers;
+        recommendation: StoredRecommendation;
+        version: number;
+      },
+    ) {
+      const row = submissions.find((s) => s.requestId === requestId);
+      if (!row) return null;
+      row.answers = data.answers;
+      row.recommendation = data.recommendation;
+      row.version = data.version;
+      row.submittedAt = new Date();
+      return row;
+    },
+    async deleteByRequestId(requestId: string) {
+      const idx = submissions.findIndex((s) => s.requestId === requestId);
+      if (idx < 0) return false;
+      submissions.splice(idx, 1);
+      return true;
     },
     async updateRecommendation(
       requestId: string,
@@ -417,6 +477,95 @@ export const demoStore = {
       const row = submissions.find((s) => s.requestId === requestId);
       if (row) row.recommendation = recommendation;
       return row ?? null;
+    },
+    async listAll() {
+      return [...submissions];
+    },
+  },
+  submissionVersions: {
+    async create(data: {
+      requestId: string;
+      version: number;
+      answers: StoredAnswers;
+      recommendation: StoredRecommendation;
+      source: string;
+      createdById?: string | null;
+      submittedAt: Date;
+    }) {
+      const row: DemoSubmissionVersion = {
+        id: randomUUID(),
+        requestId: data.requestId,
+        version: data.version,
+        answers: data.answers,
+        recommendation: data.recommendation,
+        source: data.source,
+        createdById: data.createdById ?? null,
+        submittedAt: data.submittedAt,
+        archivedAt: new Date(),
+      };
+      submissionVersionRows.push(row);
+      return row;
+    },
+    async listByRequestId(requestId: string) {
+      return submissionVersionRows
+        .filter((v) => v.requestId === requestId)
+        .sort((a, b) => b.version - a.version);
+    },
+  },
+  catalogAudit: {
+    async create(data: {
+      actorId?: string | null;
+      action: string;
+      entityType: string;
+      entityId: string;
+      summary?: string | null;
+      beforeJson?: unknown;
+      afterJson?: unknown;
+    }) {
+      const row: DemoCatalogAuditEntry = {
+        id: randomUUID(),
+        actorId: data.actorId ?? null,
+        action: data.action,
+        entityType: data.entityType,
+        entityId: data.entityId,
+        summary: data.summary ?? null,
+        beforeJson: data.beforeJson ?? null,
+        afterJson: data.afterJson ?? null,
+        createdAt: new Date(),
+      };
+      catalogAuditRows.push(row);
+      return row;
+    },
+    async list(limit = 50) {
+      return [...catalogAuditRows]
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .slice(0, limit);
+    },
+  },
+  sizingDrafts: {
+    async get(requestId: string) {
+      return sizingDraftRows.find((d) => d.requestId === requestId) ?? null;
+    },
+    async upsert(requestId: string, draftJson: Record<string, unknown>) {
+      const existing = sizingDraftRows.find((d) => d.requestId === requestId);
+      if (existing) {
+        existing.draftJson = draftJson;
+        existing.updatedAt = new Date();
+        return existing;
+      }
+      const row: DemoSizingDraft = {
+        requestId,
+        draftJson,
+        updatedAt: new Date(),
+      };
+      sizingDraftRows.push(row);
+      return row;
+    },
+    async delete(requestId: string) {
+      const idx = sizingDraftRows.findIndex((d) => d.requestId === requestId);
+      if (idx < 0) return false;
+      sizingDraftRows.splice(idx, 1);
+      return true;
     },
   },
 };

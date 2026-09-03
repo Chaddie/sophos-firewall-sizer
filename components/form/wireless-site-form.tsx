@@ -89,7 +89,7 @@ export function WirelessSiteForm({
       );
       return;
     }
-    if (value.sitePlanFiles.length + files.length > 10) {
+    if ((value.sitePlanFiles?.length ?? 0) + files.length > 10) {
       setUploadError("You can attach up to 10 site plan files per location.");
       return;
     }
@@ -97,7 +97,7 @@ export function WirelessSiteForm({
     setUploading(true);
     try {
       const uploaded = await Promise.all(files.map(uploadSitePlanFile));
-      set("sitePlanFiles", [...value.sitePlanFiles, ...uploaded]);
+      set("sitePlanFiles", [...(value.sitePlanFiles ?? []), ...uploaded]);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -107,7 +107,7 @@ export function WirelessSiteForm({
   function removeFile(index: number) {
     set(
       "sitePlanFiles",
-      value.sitePlanFiles.filter((_, i) => i !== index),
+      (value.sitePlanFiles ?? []).filter((_, i) => i !== index),
     );
   }
 
@@ -159,7 +159,7 @@ export function WirelessSiteForm({
       <div>
         <LabelWithTooltip
           htmlFor={`${idPrefix}-floorPlanNotes`}
-          label="Floor plan with approx area (ft/m) *"
+          label="Floor plan notes / approx area (ft/m)"
           tooltip={WIRELESS_FIELD_TOOLTIPS.floorPlanNotes}
         />
         <Textarea
@@ -167,13 +167,16 @@ export function WirelessSiteForm({
           className="mt-1.5 min-h-24"
           value={value.floorPlanNotes}
           onChange={(e) => set("floorPlanNotes", e.target.value)}
-          placeholder="Describe floor plan coverage and dimensions. Upload the floor plan file(s) below."
+          placeholder="Describe floor plan coverage and dimensions, or upload the floor plan file(s) below."
         />
         {errors.floorPlanNotes && (
           <p className="text-destructive mt-1 text-xs">
             {errors.floorPlanNotes.join(", ")}
           </p>
         )}
+        <p className="text-muted-foreground mt-1 text-xs">
+          Provide notes and/or upload at least one site plan file.
+        </p>
       </div>
 
       <div>
@@ -202,9 +205,9 @@ export function WirelessSiteForm({
         {uploadError && (
           <p className="text-destructive mt-1 text-xs">{uploadError}</p>
         )}
-        {value.sitePlanFiles.length > 0 && (
+        {(value.sitePlanFiles?.length ?? 0) > 0 && (
           <ul className="mt-2 space-y-1">
-            {value.sitePlanFiles.map((file, index) => (
+            {(value.sitePlanFiles ?? []).map((file, index) => (
               <li
                 key={`${file.name}-${index}`}
                 className="flex items-center justify-between rounded-md border px-3 py-1.5 text-sm"

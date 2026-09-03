@@ -42,6 +42,16 @@ export function SwitchSiteForm({
         errors={errors.switchPortCount}
       />
 
+      <FormField
+        id={`${idPrefix}-switchQuantity`}
+        label="How many switch units are needed?"
+        tooltip={SWITCH_FIELD_TOOLTIPS.switchQuantity}
+        type="number"
+        value={value.switchQuantity}
+        onChange={(v) => set("switchQuantity", v)}
+        errors={errors.switchQuantity}
+      />
+
       <YesNoField
         label="Do any connected devices need 2.5GbE ports?"
         tooltip={SWITCH_FIELD_TOOLTIPS.needs2_5GbE}

@@ -5,22 +5,52 @@ import type {
 } from "./types";
 import { isV2Recommendation } from "./types";
 
+function isHaPairSupportSku(sku: string): boolean {
+  return sku === "ENH-SUPPORT-PLUS";
+}
+
+/** Synthetic Standard / Xstream protection subscription SKUs from the engine. */
+function isProtectionSubscriptionSku(sku: string): boolean {
+  return sku.endsWith("-XP") || sku.endsWith("-STD");
+}
+
 /**
- * HA needs one Enhanced Support Plus entitlement for the pair, not one per
- * appliance. Older stored recommendations may still have quantity 2.
+ * HA needs one Enhanced Support Plus and one protection subscription for the
+ * pair, not one per appliance. Older stored recommendations may still have
+ * quantity 2 on those lines.
  */
 export function normalizeBomQuantities(items: BomLineItem[]): BomLineItem[] {
-  return items.map((item) =>
-    item.sku === "ENH-SUPPORT-PLUS" && item.quantity !== 1
-      ? { ...item, quantity: 1 }
-      : item,
-  );
+  const hasHaSupport = items.some((item) => isHaPairSupportSku(item.sku));
+
+  return items.map((item) => {
+    if (isHaPairSupportSku(item.sku) && item.quantity !== 1) {
+      return { ...item, quantity: 1 };
+    }
+    // When HA is present, protection must stay at qty 1 even if appliances are ×2.
+    if (
+      hasHaSupport &&
+      isProtectionSubscriptionSku(item.sku) &&
+      item.quantity !== 1
+    ) {
+      return { ...item, quantity: 1 };
+    }
+    return item;
+  });
 }
 
 export function bomNeedsHaSupportNormalization(items: BomLineItem[]): boolean {
-  return items.some(
-    (item) => item.sku === "ENH-SUPPORT-PLUS" && item.quantity !== 1,
-  );
+  const hasHaSupport = items.some((item) => isHaPairSupportSku(item.sku));
+  return items.some((item) => {
+    if (isHaPairSupportSku(item.sku) && item.quantity !== 1) return true;
+    if (
+      hasHaSupport &&
+      isProtectionSubscriptionSku(item.sku) &&
+      item.quantity !== 1
+    ) {
+      return true;
+    }
+    return false;
+  });
 }
 
 function recomputeConsolidatedBom(sites: SiteRecommendation[]): BomLineItem[] {
@@ -32,7 +62,7 @@ function recomputeConsolidatedBom(sites: SiteRecommendation[]): BomLineItem[] {
   return normalizeBomQuantities(bom);
 }
 
-/** Fix HA Enhanced Support Plus qty on stored recommendations (incl. legacy). */
+/** Fix HA support / protection qty on stored recommendations (incl. legacy). */
 export function normalizeStoredRecommendation(
   recommendation: StoredRecommendation,
 ): { recommendation: StoredRecommendation; changed: boolean } {

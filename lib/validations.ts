@@ -134,6 +134,7 @@ export type SizingFormInput = z.infer<typeof sizingFormSchema>;
 export const switchSiteSchema = z
   .object({
     switchPortCount: z.coerce.number().min(1, "Required"),
+    switchQuantity: z.coerce.number().int().min(1).max(64).default(1),
     needs2_5GbE: z.boolean(),
     needs10GbE: z.boolean(),
     needs10GbSfpUplink: z.boolean(),
@@ -163,24 +164,36 @@ export const sitePlanFileSchema = z.object({
   url: z.string(),
 });
 
-export const wirelessSiteSchema = z.object({
-  facilityType: z.string().min(1, "Required"),
-  ceilingHeight: z.string().min(1, "Required"),
-  numberOfFloors: z.coerce.number().min(1, "Required"),
-  internalWallMaterial: z.string().min(1, "Required"),
-  externalWallMaterial: z.string().min(1, "Required"),
-  floorPlanNotes: z.string().min(1, "Required"),
-  sitePlanFiles: z.array(sitePlanFileSchema).optional(),
-  totalUsers: z.coerce.number().min(1, "Required"),
-  usersPerAp: z.coerce.number().min(1, "Required"),
-  designGoal: wirelessDesignGoalSchema,
-  lowSignalAcceptableAreas: z.string().optional(),
-  highBandwidthAreas: z.string().optional(),
-  devicesPerUser: z.string().optional(),
-  suggestedApModels: z.string().optional(),
-  unavailableChannels: z.string().optional(),
-  restrictedChannels: z.string().optional(),
-});
+export const wirelessSiteSchema = z
+  .object({
+    facilityType: z.string().min(1, "Required"),
+    ceilingHeight: z.string().min(1, "Required"),
+    numberOfFloors: z.coerce.number().min(1, "Required"),
+    internalWallMaterial: z.string().min(1, "Required"),
+    externalWallMaterial: z.string().min(1, "Required"),
+    floorPlanNotes: z.string().optional().default(""),
+    sitePlanFiles: z.array(sitePlanFileSchema).optional(),
+    totalUsers: z.coerce.number().min(1, "Required"),
+    usersPerAp: z.coerce.number().min(1, "Required"),
+    designGoal: wirelessDesignGoalSchema,
+    lowSignalAcceptableAreas: z.string().optional(),
+    highBandwidthAreas: z.string().optional(),
+    devicesPerUser: z.string().optional(),
+    suggestedApModels: z.string().optional(),
+    unavailableChannels: z.string().optional(),
+    restrictedChannels: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const hasNotes = Boolean(data.floorPlanNotes?.trim());
+    const hasFiles = (data.sitePlanFiles?.length ?? 0) > 0;
+    if (!hasNotes && !hasFiles) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Add floor plan notes or upload a site plan file",
+        path: ["floorPlanNotes"],
+      });
+    }
+  });
 
 export const AP6_MODEL_OPTIONS = [
   { value: "", label: "No preference" },
@@ -258,6 +271,8 @@ export const createRequestSchema = z.object({
   contactName: z.string().optional(),
   contactEmail: z.string().email("A valid contact email is required"),
   expiresAt: z.string().optional(),
+  /** Required for Account Managers / Partners; optional for SE/admin. */
+  alignedSeId: z.string().uuid().optional().or(z.literal("")),
 });
 
 export const loginSchema = z.object({

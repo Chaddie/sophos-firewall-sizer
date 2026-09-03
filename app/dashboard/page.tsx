@@ -37,6 +37,7 @@ export default async function DashboardPage({
     scope?: string;
     q?: string;
     status?: string;
+    review?: string;
     archive?: string;
   }>;
 }) {
@@ -53,6 +54,12 @@ export default async function DashboardPage({
     params.status === "pending" || params.status === "submitted"
       ? params.status
       : "all";
+  const review: "any" | "flagged" | "needs_changes" | "reviewed" =
+    params.review === "flagged" ||
+    params.review === "needs_changes" ||
+    params.review === "reviewed"
+      ? params.review
+      : "any";
   const archive: "active" | "archived" =
     admin && params.archive === "archived" ? "archived" : "active";
 
@@ -61,6 +68,7 @@ export default async function DashboardPage({
       mineOnly,
       creatorQuery,
       status,
+      review,
       archive,
     }),
     getMyNotifications({ unreadOnly: true, limit: 5 }),
@@ -97,6 +105,7 @@ export default async function DashboardPage({
                 scope={scope}
                 creatorQuery={creatorQuery}
                 status={status}
+                review={review}
                 archive={archive}
                 showArchiveFilter={admin}
               />

@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { AccessoryCatalogTable } from "@/components/admin/accessory-catalog-table";
+import { CatalogAuditList } from "@/components/admin/catalog-audit-list";
+import { CatalogRecomputeButton } from "@/components/admin/catalog-recompute-button";
 import { FirewallCatalogTable } from "@/components/admin/firewall-catalog-table";
 import { SwitchCatalogTable } from "@/components/admin/switch-catalog-table";
 import {
@@ -11,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getSessionRole } from "@/lib/actions";
+import { listCatalogAudit } from "@/lib/catalog-audit";
 import { canAccessCatalogAdmin, hasSePrivileges } from "@/lib/auth-utils";
 import {
   getAccessoryCatalog,
@@ -23,11 +26,13 @@ export default async function CatalogAdminPage() {
   if (!role) redirect("/login");
   if (!canAccessCatalogAdmin(role)) redirect("/dashboard");
 
-  const [firewallModels, switchModels, accessories] = await Promise.all([
-    getFirewallCatalog(),
-    getSwitchCatalog(),
-    getAccessoryCatalog(),
-  ]);
+  const [firewallModels, switchModels, accessories, auditEntries] =
+    await Promise.all([
+      getFirewallCatalog(),
+      getSwitchCatalog(),
+      getAccessoryCatalog(),
+      listCatalogAudit(40),
+    ]);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -36,16 +41,19 @@ export default async function CatalogAdminPage() {
         showCatalogAdmin
       />
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-8 bg-[var(--sophos-grey-1)] px-4 py-8">
-        <div>
-          <h1 className="font-heading text-3xl font-light text-[var(--sophos-navy)]">
-            Catalog admin
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Edit the firewall and switch model specs the sizing engine uses,
-            including real order SKUs. Import or export CSV for bulk updates.
-            Changes take effect immediately for new submissions and don&apos;t
-            require a deploy.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="font-heading text-3xl font-light text-[var(--sophos-navy)]">
+              Catalog admin
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Edit firewall and switch specs (admin only), including order SKUs.
+              New submissions use the latest catalog immediately. Use
+              &quot;Recalculate open BOMs&quot; to refresh active submitted
+              deals after SKU or spec changes.
+            </p>
+          </div>
+          <CatalogRecomputeButton />
         </div>
 
         <Card className="border-[var(--sophos-grey-2)] shadow-sm">
@@ -91,6 +99,8 @@ export default async function CatalogAdminPage() {
             <AccessoryCatalogTable models={accessories} />
           </CardContent>
         </Card>
+
+        <CatalogAuditList entries={auditEntries} />
       </main>
     </div>
   );

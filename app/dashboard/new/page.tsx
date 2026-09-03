@@ -7,11 +7,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getSessionRole } from "@/lib/actions";
-import { canAccessCatalogAdmin, hasSePrivileges } from "@/lib/auth-utils";
+import {
+  getSessionRole,
+  listAlignableSalesEngineers,
+} from "@/lib/actions";
+import {
+  canAccessCatalogAdmin,
+  hasSePrivileges,
+} from "@/lib/auth-utils";
 
 export default async function NewRequestPage() {
-  const role = await getSessionRole();
+  const [role, salesEngineers] = await Promise.all([
+    getSessionRole(),
+    listAlignableSalesEngineers(),
+  ]);
   return (
     <div className="flex min-h-full flex-col">
       <DashboardNav
@@ -25,12 +34,16 @@ export default async function NewRequestPage() {
               Create sizing link
             </CardTitle>
             <CardDescription>
-              Generate a vanity URL to send to your customer. They will complete
-              the questionnaire and you will see the recommendation here.
+              Generate a vanity URL to send to your customer. Select the aligned
+              Sales Engineer so they are notified when the link is created and
+              when the customer submits.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CreateRequestForm />
+            <CreateRequestForm
+              salesEngineers={salesEngineers}
+              requireAlignedSe={!hasSePrivileges(role)}
+            />
           </CardContent>
         </Card>
       </main>

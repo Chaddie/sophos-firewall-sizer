@@ -166,6 +166,8 @@ export const PRODUCT_TOGGLE_TOOLTIPS = {
 export const SWITCH_FIELD_TOOLTIPS = {
   switchPortCount:
     "Total number of Ethernet ports needed at this location, including uplinks and any spare ports for future devices.",
+  switchQuantity:
+    "How many identical switches of the sized model to quote (for example multi-closet campuses). Port and PoE answers describe each unit's requirements.",
   needs2_5GbE:
     "Some access points, cameras, and modern laptops need 2.5GbE (multi-gigabit) ports to reach their full speed over Ethernet.",
   needs10GbE:

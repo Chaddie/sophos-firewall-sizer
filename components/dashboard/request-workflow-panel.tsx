@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   addSeReviewNoteAction,
   archiveRequestAction,
   flagRequestForSeAction,
+  reopenForResubmitAction,
   setReviewStatusAction,
   unarchiveRequestAction,
   updateOpportunityIdAction,
@@ -33,6 +35,7 @@ export function RequestWorkflowPanel({
   archivedAt,
   reviewedAt,
   reviewedById,
+  hasSubmission = false,
 }: {
   requestId: string;
   isSe: boolean;
@@ -46,6 +49,7 @@ export function RequestWorkflowPanel({
   archivedAt: Date | string | null;
   reviewedAt?: Date | string | null;
   reviewedById?: string | null;
+  hasSubmission?: boolean;
 }) {
   const router = useRouter();
   const [note, setNote] = useState("");
@@ -60,6 +64,7 @@ export function RequestWorkflowPanel({
     reviewedAt,
     reviewedById,
   });
+  const awaitingResubmit = status === "pending" && hasSubmission;
 
   async function flag() {
     setLoading(true);
@@ -91,6 +96,19 @@ export function RequestWorkflowPanel({
     setLoading(true);
     setError(null);
     const result = await addSeReviewNoteAction(requestId, note);
+    setLoading(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setNote("");
+    router.refresh();
+  }
+
+  async function reopen() {
+    setLoading(true);
+    setError(null);
+    const result = await reopenForResubmitAction(requestId, note);
     setLoading(false);
     if (!result.ok) {
       setError(result.error);
@@ -155,6 +173,12 @@ export function RequestWorkflowPanel({
           <p className="text-muted-foreground mt-1 text-xs">
             Status: {reviewLabel}
             {flaggedNote ? ` — ${flaggedNote}` : ""}
+          </p>
+        )}
+        {awaitingResubmit && (
+          <p className="mt-1 text-xs font-medium text-amber-800">
+            Link reopened for customer resubmit — previous BOM stays visible
+            until they submit again.
           </p>
         )}
         {archived && (
@@ -268,11 +292,41 @@ export function RequestWorkflowPanel({
                 </Button>
               </>
             )}
+            {hasSubmission && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={loading}
+                onClick={() => void reopen()}
+              >
+                Allow customer resubmit
+              </Button>
+            )}
+            {isSe && hasSubmission && (
+              <Link
+                href={`/dashboard/${requestId}/correct`}
+                className="inline-flex h-8 items-center justify-center rounded-lg border border-[var(--sophos-grey-2)] bg-background px-3 text-sm font-medium transition-colors hover:bg-muted"
+              >
+                SE correction
+              </Link>
+            )}
           </div>
         </div>
       )}
 
-      {isAdmin && status === "submitted" && (
+      {awaitingResubmit && !archived && isSe && (
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/dashboard/${requestId}/correct`}
+            className="inline-flex h-8 items-center justify-center rounded-lg border border-[var(--sophos-grey-2)] bg-background px-3 text-sm font-medium transition-colors hover:bg-muted"
+          >
+            SE correction instead
+          </Link>
+        </div>
+      )}
+
+      {isAdmin && (status === "submitted" || hasSubmission) && (
         <div className="border-t border-[var(--sophos-grey-2)] pt-3">
           {archived ? (
             <Button

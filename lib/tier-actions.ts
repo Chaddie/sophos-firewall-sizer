@@ -168,7 +168,10 @@ async function applyTierOverride(
     const option = site.switches.modelOptions?.find((o) => o.tier === tier);
     if (!option) return { error: "That tier is not available" };
 
-    const rebuilt = await rebuildSwitchBomForTier(option.modelId);
+    const rebuilt = await rebuildSwitchBomForTier(
+      option.modelId,
+      siteAnswers.products.switches.switchQuantity ?? 1,
+    );
     if (!rebuilt) return { error: "Model not found in catalog" };
 
     site.switches = {

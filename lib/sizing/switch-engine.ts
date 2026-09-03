@@ -144,6 +144,7 @@ export async function calculateSwitchRecommendation(
 
   const constraintsMet: string[] = [
     `${answers.switchPortCount} ports required`,
+    `${Math.max(1, answers.switchQuantity ?? 1)} unit${(answers.switchQuantity ?? 1) === 1 ? "" : "s"}`,
   ];
   if (answers.needs2_5GbE) constraintsMet.push("2.5GbE access ports");
   if (answers.needs10GbE) constraintsMet.push("10GbE access ports");
@@ -154,7 +155,7 @@ export async function calculateSwitchRecommendation(
     );
   }
 
-  const bom = buildSwitchBom(selected);
+  const bom = buildSwitchBom(selected, answers.switchQuantity ?? 1);
 
   return {
     catalogVersion: SWITCH_CATALOG_VERSION,
@@ -168,12 +169,16 @@ export async function calculateSwitchRecommendation(
   };
 }
 
-function buildSwitchBom(model: SwitchCatalogModel): BomLineItem[] {
+function buildSwitchBom(
+  model: SwitchCatalogModel,
+  quantity = 1,
+): BomLineItem[] {
+  const qty = Math.max(1, Math.floor(quantity) || 1);
   return [
     {
       sku: model.sku,
       description: `${model.name}`,
-      quantity: 1,
+      quantity: qty,
       productType: "switch",
     },
   ];
@@ -183,6 +188,7 @@ function buildSwitchBom(model: SwitchCatalogModel): BomLineItem[] {
  * overrides which tier (min/rec/optimal) should drive the quote. */
 export async function rebuildSwitchBomForTier(
   modelId: string,
+  quantity = 1,
 ): Promise<{ modelId: string; modelName: string; bom: BomLineItem[] } | null> {
   const allModels = await getSwitchCatalog();
   const model = allModels.find((m) => m.id === modelId);
@@ -191,6 +197,6 @@ export async function rebuildSwitchBomForTier(
   return {
     modelId: model.id,
     modelName: model.name,
-    bom: buildSwitchBom(model),
+    bom: buildSwitchBom(model, quantity),
   };
 }

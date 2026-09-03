@@ -120,6 +120,8 @@ export const sizingRequests = pgTable("sizing_requests", {
   createdById: uuid("created_by_id")
     .notNull()
     .references(() => users.id),
+  /** SE aligned to this deal when an AM/partner creates the request. */
+  alignedSeId: uuid("aligned_se_id").references((): AnyPgColumn => users.id),
   contactName: text("contact_name"),
   contactEmail: text("contact_email"),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
@@ -165,7 +167,41 @@ export const submissions = pgTable("submissions", {
     .references(() => sizingRequests.id),
   answers: jsonb("answers").$type<StoredAnswers>().notNull(),
   recommendation: jsonb("recommendation").$type<StoredRecommendation>().notNull(),
+  /** Monotonic version; prior versions live in submission_versions. */
+  version: integer("version").notNull().default(1),
   submittedAt: timestamp("submitted_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+/** Historical submission snapshots (customer resubmit / SE correction). */
+export const submissionVersions = pgTable("submission_versions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  requestId: uuid("request_id")
+    .notNull()
+    .references(() => sizingRequests.id, { onDelete: "cascade" }),
+  version: integer("version").notNull(),
+  answers: jsonb("answers").$type<StoredAnswers>().notNull(),
+  recommendation: jsonb("recommendation").$type<StoredRecommendation>().notNull(),
+  source: text("source").notNull(),
+  createdById: uuid("created_by_id").references((): AnyPgColumn => users.id),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull(),
+  archivedAt: timestamp("archived_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+/** Catalog change audit trail. */
+export const catalogAuditLog = pgTable("catalog_audit_log", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  actorId: uuid("actor_id").references((): AnyPgColumn => users.id),
+  action: text("action").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: text("entity_id").notNull(),
+  summary: text("summary"),
+  beforeJson: jsonb("before_json"),
+  afterJson: jsonb("after_json"),
+  createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
 });
@@ -247,6 +283,8 @@ export type User = typeof users.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type SizingRequest = typeof sizingRequests.$inferSelect;
 export type Submission = typeof submissions.$inferSelect;
+export type SubmissionVersion = typeof submissionVersions.$inferSelect;
+export type CatalogAuditLogEntry = typeof catalogAuditLog.$inferSelect;
 export type FirewallModelRow = typeof firewallModels.$inferSelect;
 export type SwitchModelRow = typeof switchModels.$inferSelect;
 export type AccessoryModelRow = typeof accessoryModels.$inferSelect;

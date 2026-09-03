@@ -4,13 +4,23 @@ import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createSizingRequest } from "@/lib/actions";
+import {
+  createSizingRequest,
+  type AlignableSeOption,
+} from "@/lib/actions";
 import { slugify } from "@/lib/app-url";
 
-export function CreateRequestForm() {
+export function CreateRequestForm({
+  salesEngineers,
+  requireAlignedSe,
+}: {
+  salesEngineers: AlignableSeOption[];
+  requireAlignedSe: boolean;
+}) {
   const [label, setLabel] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
+  const [alignedSeId, setAlignedSeId] = useState("");
   const [state, formAction, pending] = useActionState(createSizingRequest, null);
 
   function handleLabelChange(value: string) {
@@ -56,6 +66,38 @@ export function CreateRequestForm() {
         </div>
         {state?.error?.slug && (
           <p className="text-destructive text-xs">{state.error.slug.join(", ")}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="alignedSeId">
+          Aligned Sales Engineer{requireAlignedSe ? "" : " (optional)"}
+        </Label>
+        <select
+          id="alignedSeId"
+          name="alignedSeId"
+          value={alignedSeId}
+          onChange={(e) => setAlignedSeId(e.target.value)}
+          required={requireAlignedSe}
+          className="border-input flex h-9 w-full rounded-lg border bg-transparent px-2.5 text-sm"
+        >
+          <option value="">
+            {requireAlignedSe ? "Select a Sales Engineer…" : "None"}
+          </option>
+          {salesEngineers.map((se) => (
+            <option key={se.id} value={se.id}>
+              {se.name} ({se.email})
+            </option>
+          ))}
+        </select>
+        <p className="text-muted-foreground text-xs">
+          This SE is notified when you create the link and on customer submit /
+          Flag for SE review.
+        </p>
+        {state?.error?.alignedSeId && (
+          <p className="text-destructive text-xs">
+            {state.error.alignedSeId.join(", ")}
+          </p>
         )}
       </div>
 

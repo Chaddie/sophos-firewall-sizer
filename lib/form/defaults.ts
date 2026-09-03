@@ -39,6 +39,8 @@ export interface FirewallFormState {
 
 export interface SwitchFormState {
   switchPortCount: string;
+  /** How many switch units of the sized model. */
+  switchQuantity: string;
   needs2_5GbE: boolean;
   needs10GbE: boolean;
   needs10GbSfpUplink: boolean;
@@ -105,6 +107,7 @@ export const defaultFirewallState = (): FirewallFormState => ({
 
 export const defaultSwitchState = (): SwitchFormState => ({
   switchPortCount: "",
+  switchQuantity: "1",
   needs2_5GbE: false,
   needs10GbE: false,
   needs10GbSfpUplink: false,
@@ -112,6 +115,29 @@ export const defaultSwitchState = (): SwitchFormState => ({
   poe30wDeviceCount: "",
   poeBt60wDeviceCount: "",
 });
+
+/** Ensure restored drafts have every field the live forms expect. */
+export function normalizeSiteFormState(site: SiteFormState): SiteFormState {
+  return {
+    ...defaultSiteState(site.siteName ?? ""),
+    ...site,
+    enableFirewall: Boolean(site.enableFirewall),
+    enableSwitches: Boolean(site.enableSwitches),
+    enableWireless: Boolean(site.enableWireless),
+    firewall: { ...defaultFirewallState(), ...site.firewall },
+    switches: {
+      ...defaultSwitchState(),
+      ...site.switches,
+      switchQuantity: site.switches?.switchQuantity || "1",
+    },
+    wireless: {
+      ...defaultWirelessState(),
+      ...site.wireless,
+      sitePlanFiles: site.wireless?.sitePlanFiles ?? [],
+      designGoal: site.wireless?.designGoal || "coverage",
+    },
+  };
+}
 
 export const defaultWirelessState = (): WirelessFormState => ({
   facilityType: "",
@@ -197,6 +223,7 @@ export function firewallFormToPayload(fw: FirewallFormState) {
 export function switchFormToPayload(sw: SwitchFormState) {
   return {
     switchPortCount: Number(sw.switchPortCount),
+    switchQuantity: Math.max(1, Number(sw.switchQuantity || 1)),
     needs2_5GbE: sw.needs2_5GbE,
     needs10GbE: sw.needs10GbE,
     needs10GbSfpUplink: sw.needs10GbSfpUplink,
@@ -209,6 +236,7 @@ export function switchFormToPayload(sw: SwitchFormState) {
 }
 
 export function wirelessFormToPayload(w: WirelessFormState) {
+  const sitePlanFiles = w.sitePlanFiles ?? [];
   return {
     facilityType: w.facilityType,
     ceilingHeight: w.ceilingHeight,
@@ -216,10 +244,10 @@ export function wirelessFormToPayload(w: WirelessFormState) {
     internalWallMaterial: w.internalWallMaterial,
     externalWallMaterial: w.externalWallMaterial,
     floorPlanNotes: w.floorPlanNotes,
-    sitePlanFiles: w.sitePlanFiles.length > 0 ? w.sitePlanFiles : undefined,
+    sitePlanFiles: sitePlanFiles.length > 0 ? sitePlanFiles : undefined,
     totalUsers: Number(w.totalUsers),
     usersPerAp: Number(w.usersPerAp),
-    designGoal: w.designGoal,
+    designGoal: w.designGoal || "coverage",
     lowSignalAcceptableAreas: w.lowSignalAcceptableAreas || undefined,
     highBandwidthAreas: w.highBandwidthAreas || undefined,
     devicesPerUser: w.devicesPerUser || undefined,
@@ -248,4 +276,92 @@ export function sitesToSubmissionPayload(sites: SiteFormState[]) {
         : undefined,
     })),
   };
+}
+
+function str(n: number | undefined | null): string {
+  if (n == null || Number.isNaN(n)) return "";
+  return String(n);
+}
+
+/** Prefill the wizard from a stored v2 submission (SE correction). */
+export function answersToSiteFormStates(
+  answers: import("@/lib/sizing/types").SizingSubmissionAnswers,
+): SiteFormState[] {
+  return answers.sites.map((site) => {
+    const fw = site.products.firewall;
+    const sw = site.products.switches;
+    const wl = site.products.wireless;
+    const siteState = defaultSiteState(site.siteName);
+    siteState.enableFirewall = Boolean(fw);
+    siteState.enableSwitches = Boolean(sw);
+    siteState.enableWireless = Boolean(wl);
+
+    if (fw) {
+      siteState.firewall = {
+        ...defaultFirewallState(),
+        environment: fw.environment,
+        siteRole: fw.siteRole,
+        totalWanBandwidthMbps: str(fw.totalWanBandwidthMbps),
+        averageWanConsumptionMbps: str(fw.averageWanConsumptionMbps),
+        wanGrowth3yrPercent: str(fw.wanGrowth3yrPercent),
+        expectedPeakThroughputMbps: str(fw.expectedPeakThroughputMbps),
+        protection: fw.protection,
+        tlsInspectionScope: fw.tlsInspectionScope,
+        wafLicense: fw.wafLicense,
+        vpnType: fw.vpnType,
+        ipsecTunnels: str(fw.ipsecTunnels),
+        sslVpnTunnels: str(fw.sslVpnTunnels),
+        peakVpnThroughputMbps: str(fw.peakVpnThroughputMbps),
+        endpointCount: str(fw.endpointCount),
+        userAuthEnabled: fw.userAuthEnabled,
+        authUserCount: str(fw.authUserCount),
+        internalTrafficEnabled: fw.internalTrafficEnabled,
+        internalTrafficMbps: str(fw.internalTrafficMbps),
+        haRequired: fw.haRequired,
+        requiresSfpPlus: fw.requiresSfpPlus ?? false,
+        includeSophosTransceivers: fw.includeSophosTransceivers ?? false,
+        sfpTransceiverType: fw.sfpTransceiverType ?? "sr",
+        sfpTransceiverCount: str(fw.sfpTransceiverCount),
+        redundantPsuRequired: fw.redundantPsuRequired ?? false,
+      };
+    }
+
+    if (sw) {
+      siteState.switches = {
+        ...defaultSwitchState(),
+        switchPortCount: str(sw.switchPortCount),
+        needs2_5GbE: sw.needs2_5GbE,
+        needs10GbE: sw.needs10GbE,
+        needs10GbSfpUplink: sw.needs10GbSfpUplink,
+        needsPoE: sw.needsPoE,
+        poe30wDeviceCount: str(sw.poe30wDeviceCount),
+        poeBt60wDeviceCount: str(sw.poeBt60wDeviceCount),
+        switchQuantity: str(sw.switchQuantity ?? 1),
+      };
+    }
+
+    if (wl) {
+      siteState.wireless = {
+        ...defaultWirelessState(),
+        facilityType: wl.facilityType,
+        ceilingHeight: wl.ceilingHeight,
+        numberOfFloors: str(wl.numberOfFloors),
+        internalWallMaterial: wl.internalWallMaterial,
+        externalWallMaterial: wl.externalWallMaterial,
+        floorPlanNotes: wl.floorPlanNotes,
+        sitePlanFiles: wl.sitePlanFiles ?? [],
+        totalUsers: str(wl.totalUsers),
+        usersPerAp: str(wl.usersPerAp),
+        designGoal: wl.designGoal,
+        lowSignalAcceptableAreas: wl.lowSignalAcceptableAreas ?? "",
+        highBandwidthAreas: wl.highBandwidthAreas ?? "",
+        devicesPerUser: wl.devicesPerUser ?? "",
+        suggestedApModels: wl.suggestedApModels ?? "",
+        unavailableChannels: wl.unavailableChannels ?? "",
+        restrictedChannels: wl.restrictedChannels ?? "",
+      };
+    }
+
+    return siteState;
+  });
 }

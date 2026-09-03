@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { canAccessCatalogAdmin } from "@/lib/auth-utils";
+import { recordCatalogAudit } from "@/lib/catalog-audit";
 import {
   parseAccessoryCsv,
   parseFirewallCsv,
@@ -63,6 +64,7 @@ export async function saveFirewallModelAction(model: CatalogModel) {
     return { error: "Select at least one environment" };
   }
 
+  const before = (await getFirewallCatalog()).find((m) => m.id === model.id);
   await upsertFirewallModel({
     ...model,
     id: model.id.trim(),
@@ -70,13 +72,29 @@ export async function saveFirewallModelAction(model: CatalogModel) {
     redundantPsuSku: model.redundantPsuSku?.trim() || undefined,
     redundantPsuName: model.redundantPsuName?.trim() || undefined,
   });
+  await recordCatalogAudit({
+    action: before ? "update" : "create",
+    entityType: "firewall",
+    entityId: model.id.trim(),
+    summary: `${before ? "Updated" : "Created"} firewall ${model.name.trim()}`,
+    beforeJson: before ?? null,
+    afterJson: model,
+  });
   revalidatePath("/dashboard/admin/catalog");
   return { success: true as const };
 }
 
 export async function removeFirewallModelAction(id: string) {
   await requireAdmin();
+  const before = (await getFirewallCatalog()).find((m) => m.id === id);
   await deleteFirewallModel(id);
+  await recordCatalogAudit({
+    action: "delete",
+    entityType: "firewall",
+    entityId: id,
+    summary: `Deleted firewall ${before?.name ?? id}`,
+    beforeJson: before ?? null,
+  });
   revalidatePath("/dashboard/admin/catalog");
   return { success: true as const };
 }
@@ -88,11 +106,20 @@ export async function saveSwitchModelAction(model: SwitchCatalogModel) {
   if (!model.name.trim()) return { error: "Model name is required" };
   if (!model.sku.trim()) return { error: "SKU is required" };
 
+  const before = (await getSwitchCatalog()).find((m) => m.id === model.id);
   await upsertSwitchModel({
     ...model,
     id: model.id.trim(),
     name: model.name.trim(),
     sku: model.sku.trim(),
+  });
+  await recordCatalogAudit({
+    action: before ? "update" : "create",
+    entityType: "switch",
+    entityId: model.id.trim(),
+    summary: `${before ? "Updated" : "Created"} switch ${model.name.trim()}`,
+    beforeJson: before ?? null,
+    afterJson: model,
   });
   revalidatePath("/dashboard/admin/catalog");
   return { success: true as const };
@@ -100,7 +127,15 @@ export async function saveSwitchModelAction(model: SwitchCatalogModel) {
 
 export async function removeSwitchModelAction(id: string) {
   await requireAdmin();
+  const before = (await getSwitchCatalog()).find((m) => m.id === id);
   await deleteSwitchModel(id);
+  await recordCatalogAudit({
+    action: "delete",
+    entityType: "switch",
+    entityId: id,
+    summary: `Deleted switch ${before?.name ?? id}`,
+    beforeJson: before ?? null,
+  });
   revalidatePath("/dashboard/admin/catalog");
   return { success: true as const };
 }
@@ -115,11 +150,20 @@ export async function saveAccessoryModelAction(model: AccessoryModel) {
     return { error: "Type must be sfp_sr or sfp_lr" };
   }
 
+  const before = (await getAccessoryCatalog()).find((m) => m.id === model.id);
   await upsertAccessoryModel({
     ...model,
     id: model.id.trim(),
     name: model.name.trim(),
     sku: model.sku.trim(),
+  });
+  await recordCatalogAudit({
+    action: before ? "update" : "create",
+    entityType: "accessory",
+    entityId: model.id.trim(),
+    summary: `${before ? "Updated" : "Created"} accessory ${model.name.trim()}`,
+    beforeJson: before ?? null,
+    afterJson: model,
   });
   revalidatePath("/dashboard/admin/catalog");
   return { success: true as const };
@@ -127,7 +171,15 @@ export async function saveAccessoryModelAction(model: AccessoryModel) {
 
 export async function removeAccessoryModelAction(id: string) {
   await requireAdmin();
+  const before = (await getAccessoryCatalog()).find((m) => m.id === id);
   await deleteAccessoryModel(id);
+  await recordCatalogAudit({
+    action: "delete",
+    entityType: "accessory",
+    entityId: id,
+    summary: `Deleted accessory ${before?.name ?? id}`,
+    beforeJson: before ?? null,
+  });
   revalidatePath("/dashboard/admin/catalog");
   return { success: true as const };
 }

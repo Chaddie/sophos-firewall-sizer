@@ -38,6 +38,7 @@ export async function ensureDemoSeed() {
       label: "Demo Customer",
       status: "pending",
       createdById: "demo-admin",
+      alignedSeId: "demo-se",
       contactName: "Demo Contact",
       contactEmail: "customer@example.com",
       expiresAt: null,

@@ -15,11 +15,44 @@ import { isV2Answers } from "@/lib/sizing/types";
 import { createRequestSchema, sizingSubmissionSchema } from "@/lib/validations";
 import {
   createSubmissionInAppNotifications,
+  notifyAlignedSeOfRequestCreated,
   notifyCreatorOfSubmission,
 } from "@/lib/notifications";
-import { and, desc, eq, ilike, isNotNull, isNull, or } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+
+export type AlignableSeOption = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+/** SE + admin users that can be selected as the aligned SE on a request. */
+export async function listAlignableSalesEngineers(): Promise<
+  AlignableSeOption[]
+> {
+  const session = await auth();
+  if (!session?.user?.id) return [];
+
+  if (isDemoMode()) {
+    await ensureDemoSeed();
+    const staff = await demoStore.users.listByRoles([
+      "sales_engineer",
+      "admin",
+    ]);
+    return staff
+      .map((u) => ({ id: u.id, name: u.name, email: u.email }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  const rows = await getDb()
+    .select({ id: users.id, name: users.name, email: users.email })
+    .from(users)
+    .where(inArray(users.role, ["sales_engineer", "admin"]))
+    .orderBy(users.name);
+  return rows;
+}
 
 export async function createSizingRequest(
   _prev: { error?: Record<string, string[]> } | null,
@@ -36,6 +69,7 @@ export async function createSizingRequest(
     contactName: formData.get("contactName") || undefined,
     contactEmail: formData.get("contactEmail"),
     expiresAt: formData.get("expiresAt") || undefined,
+    alignedSeId: formData.get("alignedSeId") || undefined,
   });
 
   if (!parsed.success) {
@@ -43,6 +77,31 @@ export async function createSizingRequest(
   }
 
   const { label, slug, contactName, contactEmail, expiresAt } = parsed.data;
+  const alignedSeRaw = parsed.data.alignedSeId?.trim() || "";
+  const role = session.user.role;
+  const requiresAlignedSe = !hasSePrivileges(role);
+
+  if (requiresAlignedSe && !alignedSeRaw) {
+    return {
+      error: {
+        alignedSeId: ["Select the Sales Engineer aligned to this opportunity"],
+      },
+    };
+  }
+
+  const alignedSeId: string | null = alignedSeRaw || null;
+
+  if (alignedSeId) {
+    const alignable = await listAlignableSalesEngineers();
+    if (!alignable.some((se) => se.id === alignedSeId)) {
+      return {
+        error: { alignedSeId: ["Select a valid Sales Engineer"] },
+      };
+    }
+  }
+
+  const creatorName = session.user.name?.trim() || "Account Manager";
+  const creatorEmail = session.user.email ?? null;
 
   if (isDemoMode()) {
     await ensureDemoSeed();
@@ -55,10 +114,20 @@ export async function createSizingRequest(
       label,
       status: "pending",
       createdById: session.user.id,
+      alignedSeId,
       contactName: contactName || null,
       contactEmail,
       expiresAt: expiresAt ? new Date(expiresAt) : null,
     });
+    if (alignedSeId) {
+      await notifyAlignedSeOfRequestCreated({
+        alignedSeId,
+        label,
+        requestId: request.id,
+        creatorName,
+        creatorEmail,
+      });
+    }
     revalidatePath("/dashboard");
     redirect(`/dashboard/${request.id}`);
   }
@@ -79,11 +148,22 @@ export async function createSizingRequest(
       slug,
       label,
       createdById: session.user.id,
+      alignedSeId,
       contactName: contactName || null,
       contactEmail,
       expiresAt: expiresAt ? new Date(expiresAt) : null,
     })
     .returning();
+
+  if (alignedSeId) {
+    await notifyAlignedSeOfRequestCreated({
+      alignedSeId,
+      label,
+      requestId: request.id,
+      creatorName,
+      creatorEmail,
+    });
+  }
 
   revalidatePath("/dashboard");
   redirect(`/dashboard/${request.id}`);
@@ -126,21 +206,49 @@ export async function submitSizingForm(slug: string, payloadJson: string) {
     if (!request) {
       return { error: { _form: ["Sizing request not found"] } };
     }
-    if (request.status === "submitted") {
-      return { error: { _form: ["This form has already been submitted"] } };
-    }
     if (request.archivedAt) {
       return { error: { _form: ["This sizing link has been archived"] } };
     }
     if (request.expiresAt && request.expiresAt < new Date()) {
       return { error: { _form: ["This sizing link has expired"] } };
     }
-    await demoStore.submissions.create({
-      requestId: request.id,
-      answers,
-      recommendation,
-    });
+    if (request.status === "submitted") {
+      return { error: { _form: ["This form has already been submitted"] } };
+    }
+
+    const existing = await demoStore.submissions.findByRequestId(request.id);
+    let version = 1;
+    if (existing) {
+      const { archiveCurrentSubmission } = await import(
+        "@/lib/sizing/submission-versions"
+      );
+      await archiveCurrentSubmission({
+        requestId: request.id,
+        source: "customer_resubmit",
+      });
+      version = (existing.version ?? 1) + 1;
+      await demoStore.submissions.update(request.id, {
+        answers,
+        recommendation,
+        version,
+      });
+    } else {
+      await demoStore.submissions.create({
+        requestId: request.id,
+        answers,
+        recommendation,
+        version: 1,
+      });
+    }
+
     await demoStore.sizingRequests.updateStatus(request.id, "submitted");
+    const req = await demoStore.sizingRequests.findById(request.id);
+    if (req) {
+      req.reviewStatus = null;
+      req.reviewedAt = null;
+      req.reviewedById = null;
+    }
+
     const creator = await demoStore.users.findById(request.createdById);
     if (creator?.email) {
       await notifyCreatorOfSubmission({
@@ -154,6 +262,7 @@ export async function submitSizingForm(slug: string, payloadJson: string) {
       createdById: request.createdById,
       label: request.label,
       requestId: request.id,
+      alignedSeId: request.alignedSeId ?? null,
     });
     revalidatePath(`/dashboard/${request.id}`);
     revalidatePath("/dashboard");
@@ -182,15 +291,46 @@ export async function submitSizingForm(slug: string, payloadJson: string) {
     return { error: { _form: ["This sizing link has expired"] } };
   }
 
-  await getDb().insert(submissions).values({
-    requestId: request.id,
-    answers,
-    recommendation,
-  });
+  const [existing] = await getDb()
+    .select()
+    .from(submissions)
+    .where(eq(submissions.requestId, request.id))
+    .limit(1);
+
+  if (existing) {
+    const { archiveCurrentSubmission } = await import(
+      "@/lib/sizing/submission-versions"
+    );
+    await archiveCurrentSubmission({
+      requestId: request.id,
+      source: "customer_resubmit",
+    });
+    await getDb()
+      .update(submissions)
+      .set({
+        answers,
+        recommendation,
+        version: existing.version + 1,
+        submittedAt: new Date(),
+      })
+      .where(eq(submissions.id, existing.id));
+  } else {
+    await getDb().insert(submissions).values({
+      requestId: request.id,
+      answers,
+      recommendation,
+      version: 1,
+    });
+  }
 
   await getDb()
     .update(sizingRequests)
-    .set({ status: "submitted" })
+    .set({
+      status: "submitted",
+      reviewStatus: null,
+      reviewedAt: null,
+      reviewedById: null,
+    })
     .where(eq(sizingRequests.id, request.id));
 
   const [creator] = await getDb()
@@ -211,6 +351,7 @@ export async function submitSizingForm(slug: string, payloadJson: string) {
     createdById: request.createdById,
     label: request.label,
     requestId: request.id,
+    alignedSeId: request.alignedSeId ?? null,
   });
 
   revalidatePath(`/dashboard/${request.id}`);
@@ -284,6 +425,11 @@ export async function getDashboardRequests(opts?: {
   /** Filter by request status. */
   status?: "pending" | "submitted" | "all";
   /**
+   * SE review queue filter. `flagged` = pending SE review.
+   * `needs_changes` / `reviewed` match review_status. `any` = no filter.
+   */
+  review?: "any" | "flagged" | "needs_changes" | "reviewed";
+  /**
    * Archive visibility. Default `active` hides archived rows.
    * `archived` shows only archived; `all` shows both (admin typically).
    */
@@ -298,6 +444,8 @@ export async function getDashboardRequests(opts?: {
   const creatorQuery = isSe ? (opts?.creatorQuery?.trim() ?? "") : "";
   const statusFilter =
     opts?.status && opts.status !== "all" ? opts.status : undefined;
+  const reviewFilter =
+    opts?.review && opts.review !== "any" ? opts.review : undefined;
   const archiveFilter = opts?.archive ?? "active";
   const escapedQuery = creatorQuery.replace(/[%_\\]/g, "\\$&");
 
@@ -307,6 +455,11 @@ export async function getDashboardRequests(opts?: {
     return !row.archivedAt;
   }
 
+  function matchesReview(row: { reviewStatus?: string | null }) {
+    if (!reviewFilter) return true;
+    return row.reviewStatus === reviewFilter;
+  }
+
   if (isDemoMode()) {
     await ensureDemoSeed();
     const requests = mineOnly
@@ -314,6 +467,7 @@ export async function getDashboardRequests(opts?: {
       : await demoStore.sizingRequests.listAll();
     let enriched = await enrichDemoRequests(requests, showCreator);
     enriched = enriched.filter(matchesArchive);
+    enriched = enriched.filter(matchesReview);
     if (statusFilter) {
       enriched = enriched.filter((r) => r.status === statusFilter);
     }
@@ -337,6 +491,10 @@ export async function getDashboardRequests(opts?: {
     ? eq(sizingRequests.status, statusFilter)
     : undefined;
 
+  const reviewClause = reviewFilter
+    ? eq(sizingRequests.reviewStatus, reviewFilter)
+    : undefined;
+
   const archiveClause =
     archiveFilter === "archived"
       ? isNotNull(sizingRequests.archivedAt)
@@ -349,6 +507,7 @@ export async function getDashboardRequests(opts?: {
     if (mineOnly) conditions.push(eq(sizingRequests.createdById, session.user.id));
     if (searchFilter) conditions.push(searchFilter);
     if (statusClause) conditions.push(statusClause);
+    if (reviewClause) conditions.push(reviewClause);
     if (archiveClause) conditions.push(archiveClause);
 
     const query = getDb()
@@ -382,6 +541,7 @@ export async function getDashboardRequests(opts?: {
 
   const amConditions = [eq(sizingRequests.createdById, session.user.id)];
   if (statusClause) amConditions.push(statusClause);
+  if (reviewClause) amConditions.push(reviewClause);
   if (archiveClause) amConditions.push(archiveClause);
 
   return getDb()
@@ -428,6 +588,12 @@ export async function getRequestDetail(id: string) {
       }
     }
 
+    let alignedSe: { name: string; email: string } | null = null;
+    if (request.alignedSeId) {
+      const se = await demoStore.users.findById(request.alignedSeId);
+      if (se) alignedSe = { name: se.name, email: se.email };
+    }
+
     if (submission) {
       const { recommendation, changed } = normalizeStoredRecommendation(
         submission.recommendation,
@@ -441,11 +607,12 @@ export async function getRequestDetail(id: string) {
           request,
           submission: { ...submission, recommendation },
           creator,
+          alignedSe,
         };
       }
     }
 
-    return { request, submission, creator };
+    return { request, submission, creator, alignedSe };
   }
 
   const [request] = await getDb()
@@ -473,6 +640,16 @@ export async function getRequestDetail(id: string) {
     if (user) creator = user;
   }
 
+  let alignedSe: { name: string; email: string } | null = null;
+  if (request.alignedSeId) {
+    const [se] = await getDb()
+      .select({ name: users.name, email: users.email })
+      .from(users)
+      .where(eq(users.id, request.alignedSeId))
+      .limit(1);
+    if (se) alignedSe = se;
+  }
+
   if (submission) {
     const { recommendation, changed } = normalizeStoredRecommendation(
       submission.recommendation,
@@ -486,6 +663,7 @@ export async function getRequestDetail(id: string) {
         request,
         submission: { ...submission, recommendation },
         creator,
+        alignedSe,
       };
     }
   }
@@ -494,6 +672,7 @@ export async function getRequestDetail(id: string) {
     request,
     submission: submission ?? null,
     creator,
+    alignedSe,
   };
 }
 

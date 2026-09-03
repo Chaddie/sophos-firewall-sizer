@@ -105,10 +105,12 @@ export async function createSubmissionInAppNotifications(input: {
   createdById: string;
   label: string;
   requestId: string;
+  alignedSeId?: string | null;
 }): Promise<void> {
   const recipientIds = await recipientUserIdsForSubmission(input.createdById);
+  if (input.alignedSeId) recipientIds.push(input.alignedSeId);
   await insertInAppNotifications({
-    recipientIds,
+    recipientIds: [...new Set(recipientIds)],
     type: "submission",
     title: `Sizing submitted: ${input.label}`,
     body: "The customer completed the sizing questionnaire.",
@@ -138,11 +140,13 @@ export async function createPendingSeReviewNotifications(input: {
   label: string;
   requestId: string;
   note?: string | null;
+  alignedSeId?: string | null;
 }): Promise<void> {
   const recipientIds = await staffRecipientUserIds();
+  if (input.alignedSeId) recipientIds.push(input.alignedSeId);
   const note = input.note?.trim();
   await insertInAppNotifications({
-    recipientIds,
+    recipientIds: [...new Set(recipientIds)],
     type: "pending_se_review",
     title: `Pending SE Review: ${input.label}`,
     body: note
@@ -151,6 +155,143 @@ export async function createPendingSeReviewNotifications(input: {
     href: `/dashboard/${input.requestId}`,
     requestId: input.requestId,
   });
+}
+
+/** Email content for aligned SE when an AM/partner creates a sizing request.
+ * Wired for when outbound email is configured (Resend); safe no-op otherwise. */
+export function alignedSeRequestCreatedEmail(input: {
+  label: string;
+  requestId: string;
+  creatorName: string;
+  creatorEmail?: string | null;
+}): { subject: string; html: string; text: string } {
+  const url = `${getAppUrl()}/dashboard/${input.requestId}`;
+  const who = input.creatorEmail
+    ? `${input.creatorName} (${input.creatorEmail})`
+    : input.creatorName;
+  const subject = `Sizing request raised: ${input.label}`;
+  const text = `One of your Account Managers has raised a sizing request through the Sophos Hardware Sizing portal.\n\nCustomer: ${input.label}\nRaised by: ${who}\n\nOpen request: ${url}\n`;
+  const html = `
+    <p>One of your Account Managers has raised a sizing request through the Sophos Hardware Sizing portal.</p>
+    <p><strong>Customer:</strong> ${input.label}<br/>
+    <strong>Raised by:</strong> ${who}</p>
+    <p><a href="${url}">Open request</a></p>
+  `.trim();
+  return { subject, html, text };
+}
+
+/**
+ * Notify the aligned SE that an AM/partner created a sizing link.
+ * In-app always; email is attempted when Resend is configured (otherwise deferred).
+ */
+export async function notifyAlignedSeOfRequestCreated(input: {
+  alignedSeId: string;
+  label: string;
+  requestId: string;
+  creatorName: string;
+  creatorEmail?: string | null;
+}): Promise<void> {
+  await insertInAppNotifications({
+    recipientIds: [input.alignedSeId],
+    type: "aligned_request_created",
+    title: `Sizing request raised: ${input.label}`,
+    body: `${input.creatorName} raised a sizing request and aligned you as SE.`,
+    href: `/dashboard/${input.requestId}`,
+    requestId: input.requestId,
+  });
+
+  // Email is wired for later / when RESEND_API_KEY + EMAIL_FROM are set.
+  let toEmail: string | null = null;
+  if (isDemoMode()) {
+    const se = await demoStore.users.findById(input.alignedSeId);
+    toEmail = se?.email ?? null;
+  } else {
+    const [se] = await getDb()
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, input.alignedSeId))
+      .limit(1);
+    toEmail = se?.email ?? null;
+  }
+
+  if (toEmail) {
+    const content = alignedSeRequestCreatedEmail({
+      label: input.label,
+      requestId: input.requestId,
+      creatorName: input.creatorName,
+      creatorEmail: input.creatorEmail,
+    });
+    await sendEmail({ to: toEmail, ...content });
+  }
+}
+
+function reviewStatusNotifyEmail(input: {
+  label: string;
+  requestId: string;
+  status: "reviewed" | "needs_changes";
+  note?: string | null;
+}): { subject: string; html: string; text: string } {
+  const url = `${getAppUrl()}/dashboard/${input.requestId}`;
+  const statusLabel =
+    input.status === "reviewed" ? "reviewed" : "needs changes";
+  const subject = `SE review ${statusLabel}: ${input.label}`;
+  const noteLine = input.note?.trim()
+    ? `\n\nNote: ${input.note.trim()}\n`
+    : "\n";
+  const text = `A Sales Engineer marked "${input.label}" as ${statusLabel}.${noteLine}\nOpen request: ${url}\n`;
+  const html = `
+    <p>A Sales Engineer marked <strong>${input.label}</strong> as <strong>${statusLabel}</strong>.</p>
+    ${input.note?.trim() ? `<p>Note: ${input.note.trim()}</p>` : ""}
+    <p><a href="${url}">Open request</a></p>
+  `.trim();
+  return { subject, html, text };
+}
+
+/** Notify the request creator (AM/partner) when SE marks reviewed / needs_changes. */
+export async function createReviewStatusNotifications(input: {
+  createdById: string;
+  label: string;
+  requestId: string;
+  status: "reviewed" | "needs_changes";
+  note?: string | null;
+}): Promise<void> {
+  const statusLabel =
+    input.status === "reviewed" ? "Reviewed" : "Needs changes";
+  const note = input.note?.trim();
+
+  await insertInAppNotifications({
+    recipientIds: [input.createdById],
+    type: "review_status",
+    title: `${statusLabel}: ${input.label}`,
+    body: note
+      ? `Sales Engineer marked this request as ${statusLabel.toLowerCase()} — ${note}`
+      : `Sales Engineer marked this request as ${statusLabel.toLowerCase()}.`,
+    href: `/dashboard/${input.requestId}`,
+    requestId: input.requestId,
+  });
+
+  let toEmail: string | null = null;
+  if (isDemoMode()) {
+    const creator = await demoStore.users.findById(input.createdById);
+    toEmail = creator?.email ?? null;
+  } else {
+    const [creator] = await getDb()
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, input.createdById))
+      .limit(1);
+    toEmail = creator?.email ?? null;
+  }
+
+  if (toEmail) {
+    const content = reviewStatusNotifyEmail({
+      label: input.label,
+      requestId: input.requestId,
+      status: input.status,
+      note,
+    });
+    await sendEmail({ to: toEmail, ...content });
+  }
 }
 
 export async function listNotificationsForUser(

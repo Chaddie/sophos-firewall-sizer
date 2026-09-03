@@ -125,6 +125,10 @@ function formatSiteProducts(site: SiteSubmission) {
       title: "Switches",
       rows: [
         { label: "Switch ports needed", value: String(sw.switchPortCount) },
+        {
+          label: "Switch quantity",
+          value: String(sw.switchQuantity ?? 1),
+        },
         { label: "2.5GbE ports required", value: sw.needs2_5GbE ? "Yes" : "No" },
         { label: "10GbE ports required", value: sw.needs10GbE ? "Yes" : "No" },
         {

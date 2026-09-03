@@ -152,116 +152,101 @@ function generateGuide(spec: GuideSpec, outDir: string) {
 const accountManagerGuide: GuideSpec = {
   filename: "account-manager-guide.pdf",
   title: "Sophos Hardware Sizing Tool",
-  subtitle: "Account Manager & Sales Engineer Guide",
+  subtitle: "Account Manager, Sales Engineer & Partner Guide",
   intro:
-    "This guide walks Account Managers and Sales Engineers through creating sizing links, sharing them with customers, and reviewing the recommendations that come back.",
+    "This guide covers creating sizing links, the Flag \u2192 SE Review \u2192 export workflow, partner access, catalog admin (admins only), and how to reopen or correct a submission.",
   sections: [
     {
       heading: "What this tool does",
       blocks: [
         {
           type: "paragraph",
-          text: "The Sophos Hardware Sizing tool turns a customer's environment details into a right-sized hardware recommendation for Sophos Firewalls, Switches, and Wireless access points.",
+          text: "The Sophos Hardware Sizing tool turns a customer's environment details into a right-sized hardware recommendation for Sophos Firewalls, Switches, and Wireless access points. Use it as the sizing engine of record for Firewall/Switch intake and SE discussion. Pricing, terms, and some subscription SKUs still belong in CPQ/spreadsheet until fully mapped.",
         },
         {
           type: "bullets",
           items: [
-            "Send a customer a simple, guided questionnaire covering one or more sites",
-            "Get back Minimum / Recommended / Optimal firewall and switch model options with a bill of materials (BOM)",
-            "Hand off wireless / access point scoping to the Sophos presales wireless team",
-            "Track every sizing request from a single dashboard",
+            "Send a customer a guided multi-site questionnaire (Firewall / Switches / Wireless)",
+            "Get Minimum / Recommended / Optimal model tiers plus a consolidated bill of materials (BOM)",
+            "Hand off wireless / AP scoping to the Sophos presales wireless team (no fake AP BOM)",
+            "Flag for SE review, notify the AM when reviewed or needs changes, then export",
           ],
         },
       ],
     },
     {
-      heading: "Signing in and roles",
+      heading: "Roles",
       blocks: [
-        {
-          type: "paragraph",
-          text: "Sign in with the email and password provided by your team. Your role determines what you see on the dashboard:",
-        },
         {
           type: "bullets",
           items: [
-            "Account Manager \u2014 sees only the sizing links you personally created, and the submissions against them",
-            "Sales Engineer \u2014 sees every sizing link across the team, who created each one, and can access Catalog admin",
+            "Account Manager \u2014 creates links, sees only their own requests, flags for SE, exports after review",
+            "Sales Engineer \u2014 sees all requests, SE review queue (flagged), marks reviewed / needs changes, can apply SE corrections",
+            "Partner \u2014 magic-link access to create sizing links for their deals (sponsored by an SE)",
+            "Admin \u2014 catalog admin, archive, and BOM recalculate after catalog changes",
           ],
         },
       ],
     },
     {
-      heading: "Creating a sizing link",
+      heading: "Creating and sharing a sizing link",
       blocks: [
         {
           type: "paragraph",
-          text: "From the dashboard, click \u201cNew link\u201d to open the create-request form. You will need:",
+          text: "From the dashboard, click \u201cNew link\u201d. Enter a customer label, vanity slug, contact name/email, and optional expiry. Copy the link and send it to your contact. Anyone on the same email domain can unlock the wizard after confirming their email.",
         },
-        {
-          type: "bullets",
-          items: [
-            "Customer / company label (required) \u2014 shown to the customer on the questionnaire",
-            "Vanity URL slug \u2014 auto-suggested from the label, or set your own",
-            "Contact name (optional) and contact email (required) \u2014 the person at the customer you are sending the link to",
-            "Link expiry (optional) \u2014 after this date the link stops accepting submissions",
-          ],
-        },
-        {
-          type: "paragraph",
-          text: "After submitting, you will land on the request's detail page with a copyable link to send to the customer.",
-        },
-      ],
-    },
-    {
-      heading: "Sharing the link with the customer",
-      blocks: [
-        {
-          type: "paragraph",
-          text: "Copy the link and send it to your contact directly (for example, by email). When they open it:",
-        },
-        {
-          type: "bullets",
-          items: [
-            "They are first asked to confirm their email address",
-            "Access is granted to anyone using an email on the same domain as the contact email you entered \u2014 not only that one exact address",
-            "Once verified, they see the sizing questionnaire (Sites, Configure, and Review steps)",
-          ],
-        },
-      ],
-    },
-    {
-      heading: "Reviewing a submission",
-      blocks: [
-        {
-          type: "paragraph",
-          text: "Once the customer submits, the request's detail page shows:",
-        },
-        {
-          type: "bullets",
-          items: [
-            "A consolidated bill of materials (BOM) across all sites and products",
-            "Per-site breakdowns for Firewall, Switches, and Wireless",
-            "Minimum / Recommended / Optimal tier options you can switch between per site \u2014 the BOM updates automatically",
-            "A wireless handoff button to email or download a summary for the Sophos presales wireless team, when wireless was requested",
-          ],
-        },
-      ],
-    },
-    {
-      heading: "Before you quote the customer",
-      blocks: [
         {
           type: "callout",
-          text: "Always review the auto-generated recommendation with your Sales Engineer before sending a formal quote to the customer. The tool provides a starting point based on the answers given \u2014 it does not replace a technical review.",
+          text: "You receive an in-app notification (and email when configured) when the customer submits.",
         },
       ],
     },
     {
-      heading: "Catalog admin (Sales Engineers only)",
+      heading: "Flag \u2192 SE Review \u2192 export",
+      blocks: [
+        {
+          type: "bullets",
+          items: [
+            "AM: open the submitted request, optionally add a note, click Flag for SE \u2014 all SE/admin users get an in-app notification",
+            "SE: use the dashboard \u201cSE queue\u201d filter (review = flagged), open the request, add notes, then Mark reviewed or Needs changes",
+            "AM is notified in-app (and by email when configured) when SE sets reviewed or needs_changes",
+            "AM CSV / quote export stays locked until reviewStatus is reviewed (SEs can always export)",
+          ],
+        },
+        {
+          type: "callout",
+          text: "Always complete SE review before pasting a BOM into CPQ. Treat the tool as sizing guidance until subscription/support SKUs are fully orderable.",
+        },
+      ],
+    },
+    {
+      heading: "Resubmit and SE correction",
+      blocks: [
+        {
+          type: "bullets",
+          items: [
+            "Allow customer resubmit \u2014 reopens the vanity link; prior BOM stays visible until they submit again, then the old version is archived",
+            "SE correction \u2014 SE edits answers in-app, recalculates the BOM, archives the prior version, and marks the request reviewed",
+            "Submission history on the request page lists archived versions (customer resubmit, SE correction, catalog recompute)",
+          ],
+        },
+      ],
+    },
+    {
+      heading: "Partners",
       blocks: [
         {
           type: "paragraph",
-          text: "Sales Engineers can open \u201cCatalog admin\u201d from the navigation to edit the firewall and switch models the sizing engine recommends from, including order SKUs, without needing a redeploy.",
+          text: "SEs invite partners from the Partners page with a one-time magic link. Partners sign in via email, create sizing links for their customers, and follow the same Flag \u2192 SE review workflow. Partners do not manage the catalog.",
+        },
+      ],
+    },
+    {
+      heading: "Catalog admin (admins only)",
+      blocks: [
+        {
+          type: "paragraph",
+          text: "Only admins can open Catalog admin to edit firewall/switch/accessory specs and SKUs, import CSV, view the audit trail, and recalculate BOMs for open submitted deals after catalog changes. Sales Engineers do not get catalog edit access.",
         },
       ],
     },
@@ -271,9 +256,10 @@ const accountManagerGuide: GuideSpec = {
         {
           type: "bullets",
           items: [
-            "Link expired: create a new link for the customer \u2014 expired links no longer accept submissions",
-            "Customer says their email does not match: double-check the contact email domain you entered matches the customer's actual email domain",
-            "Older links created before this feature has no contact email on file, so any customer can open them \u2014 email verification is only enforced when a contact email is on record",
+            "Wrong customer answers: Allow customer resubmit or use SE correction \u2014 do not create a duplicate link unless the slug must change",
+            "Export disabled for AM: wait for SE Mark reviewed, or ask an SE to export",
+            "Link expired or archived: create a new link, or unarchive (admin) if appropriate",
+            "Email domain mismatch: contact email domain must match the customer\u2019s work domain",
           ],
         },
       ],
@@ -286,14 +272,14 @@ const customerGuide: GuideSpec = {
   title: "Sophos Hardware Sizing Questionnaire",
   subtitle: "Customer Guide",
   intro:
-    "Your Sophos account manager has sent you a link to a short questionnaire covering your firewall, switch, and/or wireless requirements. This guide explains what to expect.",
+    "Your Sophos account manager or partner has sent you a link to a short questionnaire covering your firewall, switch, and/or wireless requirements. This guide explains what to expect.",
   sections: [
     {
       heading: "What to expect",
       blocks: [
         {
           type: "paragraph",
-          text: "The questionnaire takes about 10\u201315 minutes per site and helps your Sophos account manager recommend the right Sophos hardware for your environment. You can add more than one site if you are sizing multiple locations.",
+          text: "The questionnaire takes about 10\u201315 minutes per site and helps your Sophos contact recommend the right Sophos hardware. You can add more than one site. Progress is saved automatically so you can finish later in the same browser (and on the server for this link).",
         },
       ],
     },
@@ -301,15 +287,11 @@ const customerGuide: GuideSpec = {
       heading: "Opening the link",
       blocks: [
         {
-          type: "paragraph",
-          text: "When you open the link, you will first be asked to confirm your email address.",
-        },
-        {
           type: "bullets",
           items: [
             "Enter your work email address",
-            "It must be on the same company domain the link was sent to (for example, if the link was sent to yourname@yourcompany.com, any @yourcompany.com email will work)",
-            "This is a one-time check per browser session, so you will not be asked again if you come back to finish later in the same session",
+            "It must be on the same company domain the link was sent to",
+            "This check is remembered for the browser session",
           ],
         },
       ],
@@ -318,20 +300,12 @@ const customerGuide: GuideSpec = {
       heading: "Completing the questionnaire",
       blocks: [
         {
-          type: "paragraph",
-          text: "The questionnaire has three steps:",
-        },
-        {
           type: "bullets",
           items: [
-            "Sites \u2014 add each physical location you want sized",
-            "Configure \u2014 for each site, choose which products apply (Firewall, Switches, Wireless / access points) and answer the relevant questions",
-            "Review \u2014 a summary of what you have entered before you submit",
+            "Sites \u2014 add each physical location",
+            "Configure \u2014 choose Firewall, Switches, and/or Wireless and answer the questions (including how many switch units if you need more than one)",
+            "Review \u2014 confirm your answers, then submit",
           ],
-        },
-        {
-          type: "paragraph",
-          text: "Required fields are marked with an asterisk (*). If you try to continue with something missing, the page will jump to the first field that needs your attention.",
         },
       ],
     },
@@ -341,9 +315,9 @@ const customerGuide: GuideSpec = {
         {
           type: "bullets",
           items: [
-            "Firewall: internet circuit speed, typical and peak usage, VPN requirements (site-to-site / SD-WAN and remote access), user counts",
-            "Switches: number of ports needed, PoE device counts",
-            "Wireless: facility type, ceiling height, number of floors, wall materials, and a floor plan (you can upload a file)",
+            "Firewall: circuit speed, typical and peak usage, VPN, user counts",
+            "Switches: ports needed per unit, how many switch units, PoE device counts",
+            "Wireless: facility details and a floor plan upload if available",
           ],
         },
       ],
@@ -353,7 +327,7 @@ const customerGuide: GuideSpec = {
       blocks: [
         {
           type: "paragraph",
-          text: "You will see a confirmation page \u2014 no further action is needed on your part. Your Sophos Account Manager will review your requirements and follow up with a recommended solution.",
+          text: "You will see a confirmation page. Your account team reviews the recommendation. If they ask you to correct answers, they will reopen the same link so you can submit again.",
         },
       ],
     },

@@ -18,6 +18,8 @@ import {
   isAdmin,
 } from "@/lib/auth-utils";
 import { buildVanityUrl } from "@/lib/app-url";
+import { listSubmissionVersions } from "@/lib/sizing/submission-versions";
+import { SubmissionVersionHistory } from "@/components/dashboard/submission-version-history";
 
 export default async function RequestDetailPage({
   params,
@@ -32,7 +34,8 @@ export default async function RequestDetailPage({
 
   if (!data) notFound();
 
-  const { request, submission, creator } = data;
+  const { request, submission, creator, alignedSe } = data;
+  const versions = await listSubmissionVersions(request.id);
   const vanityUrl = buildVanityUrl(request.slug);
   const showCreator = hasSePrivileges(role);
   const admin = isAdmin(role);
@@ -40,6 +43,7 @@ export default async function RequestDetailPage({
   const expired =
     request.expiresAt !== null && request.expiresAt < new Date();
   const contactDomain = request.contactEmail?.split("@")[1];
+  const awaitingResubmit = request.status === "pending" && Boolean(submission);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -75,6 +79,11 @@ export default async function RequestDetailPage({
                   creator.name,
                   creator.email,
                 )}
+              </p>
+            )}
+            {alignedSe && (
+              <p className="text-muted-foreground mt-1 text-xs">
+                Aligned SE: {alignedSe.name} ({alignedSe.email})
               </p>
             )}
           </div>
@@ -120,6 +129,7 @@ export default async function RequestDetailPage({
           archivedAt={request.archivedAt ?? null}
           reviewedAt={request.reviewedAt ?? null}
           reviewedById={request.reviewedById ?? null}
+          hasSubmission={Boolean(submission)}
         />
 
         {!submission ? (
@@ -137,10 +147,17 @@ export default async function RequestDetailPage({
           </Card>
         ) : (
           <>
+            {awaitingResubmit && (
+              <p className="rounded-md bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+                Customer resubmit is open. Showing the last submitted BOM until
+                they submit again (then this version moves to history).
+              </p>
+            )}
             {!showCreator && request.reviewStatus !== "reviewed" && (
               <p className="rounded-md bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
                 Please review this recommendation with your Sales Engineer
                 before sending a quote. Use “Flag for SE” above when ready.
+                CSV export unlocks after SE review.
               </p>
             )}
             {request.reviewStatus === "reviewed" && (
@@ -155,6 +172,18 @@ export default async function RequestDetailPage({
               submittedAt={submission.submittedAt}
               opportunityId={request.opportunityId ?? null}
               label={request.label}
+              exportAllowed={
+                showCreator || request.reviewStatus === "reviewed"
+              }
+              exportBlockedReason={
+                showCreator || request.reviewStatus === "reviewed"
+                  ? null
+                  : "CSV and quote export unlock after a Sales Engineer marks this request as reviewed. Flag for SE review above when ready."
+              }
+            />
+            <SubmissionVersionHistory
+              currentVersion={submission.version ?? 1}
+              versions={versions}
             />
           </>
         )}

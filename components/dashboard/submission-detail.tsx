@@ -31,6 +31,9 @@ interface SubmissionDetailProps {
   submittedAt: Date;
   opportunityId?: string | null;
   label?: string | null;
+  /** Soft export gate: AMs blocked until SE marks reviewed. SEs always allowed. */
+  exportAllowed?: boolean;
+  exportBlockedReason?: string | null;
 }
 
 export function SubmissionDetail({
@@ -40,6 +43,8 @@ export function SubmissionDetail({
   submittedAt,
   opportunityId,
   label,
+  exportAllowed = true,
+  exportBlockedReason,
 }: SubmissionDetailProps) {
   const quoteText = formatQuoteSummary(recommendation);
   const formattedAnswers = formatAnswersForDisplay(answers);
@@ -65,8 +70,14 @@ export function SubmissionDetail({
                 quoteText={quoteText}
                 opportunityId={opportunityId}
                 label={label}
+                exportAllowed={exportAllowed}
+                exportBlockedReason={exportBlockedReason}
               />
-              <CopyQuoteButton text={quoteText} />
+              <CopyQuoteButton
+                text={quoteText}
+                disabled={!exportAllowed}
+                disabledReason={exportBlockedReason}
+              />
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -288,8 +299,14 @@ export function SubmissionDetail({
               quoteText={quoteText}
               opportunityId={opportunityId}
               label={label}
+              exportAllowed={exportAllowed}
+              exportBlockedReason={exportBlockedReason}
             />
-            <CopyQuoteButton text={quoteText} />
+            <CopyQuoteButton
+              text={quoteText}
+              disabled={!exportAllowed}
+              disabledReason={exportBlockedReason}
+            />
           </div>
         </CardHeader>
         <CardContent className="space-y-4">

@@ -10,17 +10,31 @@ import {
   markMyNotificationReadAction,
 } from "@/lib/notification-actions";
 import type { InAppNotification } from "@/lib/notifications";
+import {
+  ensureBrowserNotificationPermission,
+  notifyBrowserOfNewItems,
+} from "@/lib/browser-notifications";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const POLL_MS = 45_000;
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [items, setItems] = useState<InAppNotification[]>([]);
   const [pending, startTransition] = useTransition();
+  const [pushPermission, setPushPermission] = useState<
+    NotificationPermission | "unsupported"
+  >(() => {
+    if (typeof window === "undefined") return "default";
+    if (!("Notification" in window)) return "unsupported";
+    return Notification.permission;
+  });
   const rootRef = useRef<HTMLDivElement>(null);
+  const hydratedRef = useRef(false);
 
-  function refresh() {
+  function refresh(opts?: { announce?: boolean }) {
     startTransition(async () => {
       const [count, list] = await Promise.all([
         getMyUnreadNotificationCount(),
@@ -28,11 +42,24 @@ export function NotificationBell() {
       ]);
       setUnread(count);
       setItems(list);
+      if (opts?.announce && hydratedRef.current) {
+        notifyBrowserOfNewItems(list);
+      } else if (!hydratedRef.current) {
+        // Seed seen IDs on first load so we don't notify for historical unread.
+        notifyBrowserOfNewItems(
+          list.map((item) => ({ ...item, readAt: item.readAt ?? new Date() })),
+        );
+        hydratedRef.current = true;
+      }
     });
   }
 
   useEffect(() => {
-    refresh();
+    refresh({ announce: false });
+    const timer = window.setInterval(() => {
+      refresh({ announce: true });
+    }, POLL_MS);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -49,12 +76,20 @@ export function NotificationBell() {
   async function onOpen() {
     const next = !open;
     setOpen(next);
-    if (next) refresh();
+    if (next) refresh({ announce: false });
+  }
+
+  async function onEnableDesktop() {
+    const permission = await ensureBrowserNotificationPermission();
+    setPushPermission(permission);
+    if (permission === "granted") {
+      refresh({ announce: true });
+    }
   }
 
   async function onMarkAll() {
     await markAllMyNotificationsReadAction();
-    refresh();
+    refresh({ announce: false });
   }
 
   async function onClickItem(item: InAppNotification) {
@@ -103,6 +138,24 @@ export function NotificationBell() {
               </button>
             )}
           </div>
+          {pushPermission !== "unsupported" && pushPermission !== "granted" && (
+            <div className="border-b border-[var(--sophos-grey-2)] bg-[var(--sophos-grey-1)] px-3 py-2">
+              {pushPermission === "denied" ? (
+                <p className="text-xs text-[var(--sophos-grey-4)]">
+                  Desktop notifications are blocked in this browser. Enable them
+                  in site settings if you want alerts while the tab is open.
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  className="text-xs font-medium text-[var(--sophos-blue)] hover:underline"
+                  onClick={() => void onEnableDesktop()}
+                >
+                  Enable desktop notifications
+                </button>
+              )}
+            </div>
+          )}
           <div className="max-h-80 overflow-y-auto">
             {items.length === 0 ? (
               <p className="px-3 py-6 text-center text-sm text-[var(--sophos-grey-4)]">

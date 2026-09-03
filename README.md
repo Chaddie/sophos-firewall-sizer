@@ -1,25 +1,29 @@
 # Sophos Firewall Sizer
 
-Multi-site sizing questionnaire for Sophos Firewall, Switch, and Wireless (AP) products, with vanity URLs, a presales dashboard, role-based access, and a catalog admin page.
+Multi-site sizing questionnaire for Sophos Firewall, Switch, and Wireless (AP) products, with vanity URLs, a presales dashboard, role-based access, partner magic links, SE review workflow, and admin-only catalog management.
 
 ## Features
 
-- **Vanity URLs** — presales creates `/r/{slug}` links to send to customers, along with the recipient's name/email; anyone on that same email domain must confirm their email before the sizing wizard unlocks
-- **Multi-site wizard** — customers add one or more named sites and pick which products (Firewall / Switches / Wireless) apply at each
-- **Firewall sizing** — Minimum / Recommended / Optimal model tiers from public Sophos XGS specs, across physical, virtual, AWS, and Azure environments
-- **Switch sizing** — Minimum / Recommended / Optimal Sophos Switch 200/1000 series tiers based on port count, GbE, uplink, and PoE requirements
-- **Wireless / AP handoff** — collects site survey info and uploaded site plans, then generates a pre-filled email + downloadable summary for `presalesdesk-wireless@sophos.com`
-- **Roles** — Account Managers see only their own links; Sales Engineers see every link and who created it
-- **Catalog admin** (Sales Engineers only) — edit firewall/switch model specs, redundant PSU SKUs, and SFP+ SR/LR transceiver accessories from the app, no redeploy required
-- **Tier overrides** — an AM/SE can re-quote a site's BOM against the Minimum/Recommended/Optimal tier instead of the default
-- **Presales dashboard** — view submissions, consolidated bill of materials, and copyable quote summaries
-- **User guides** — downloadable PDF guides for both audiences: "User guide" in the dashboard nav (Account Managers/Sales Engineers) and "Need help?" on the sizing wizard (customers)
+- **Vanity URLs** — AM/SE/partner creates `/r/{slug}` links; anyone on the contact’s email domain confirms email before the wizard unlocks
+- **Multi-site wizard** — customers add sites and pick Firewall / Switches / Wireless; drafts autosave in the browser and on the server
+- **Firewall sizing** — Minimum / Recommended / Optimal tiers from public Sophos XGS specs (physical, virtual, AWS, Azure)
+- **Switch sizing** — port/PoE/speed tiers with **switch quantity** for multi-unit campuses
+- **Wireless / AP handoff** — site survey + uploads; email/summary for `presalesdesk-wireless@sophos.com` (no automated AP BOM)
+- **Roles**
+  - **Account Manager** — own links only; Flag for SE; export unlocked after SE review
+  - **Sales Engineer** — all requests; SE review queue; Mark reviewed / Needs changes (notifies AM); SE correction
+  - **Partner** — magic-link portal to create links (sponsored by an SE)
+  - **Admin** — catalog admin, archive, recalculate open BOMs
+- **Flag → Review → export** — Flag notifies SEs; Reviewed / Needs changes notifies the AM; AM CSV/quote export soft-gated until reviewed
+- **Resubmit & version history** — reopen for customer correction or SE answer correction; prior submissions archived
+- **Catalog admin (admins only)** — edit specs/SKUs, CSV import/export, audit trail, recalculate BOMs for open deals
+- **User guides** — PDFs in `public/guides/` (regenerate with `npm run docs:guides`)
 
 ## Stack
 
 - Next.js 16 (App Router)
 - PostgreSQL via Neon + Drizzle ORM
-- Auth.js (credentials) for presales login
+- Auth.js (credentials) for presales login; partner magic links; optional passkeys/SSO
 - Vercel Blob for wireless site plan uploads (falls back to inline storage if unconfigured)
 - Tailwind CSS + shadcn/ui + Base UI
 
@@ -56,9 +60,9 @@ Create a free database at [neon.tech](https://neon.tech), then push the schema:
 npm run db:push
 ```
 
-If you're upgrading an existing database from an earlier version of this app rather than starting fresh, also run the numbered migration scripts in `scripts/` in order (`migrate-v2.sql`, `migrate-v3.sql`, `migrate-v4.sql`, `migrate-v5.sql`) against your database before `db:push`/`db:seed`.
+If you're upgrading an existing database, run the numbered migration scripts in `scripts/` in order (`migrate-v2.sql` … `migrate-v13.sql`) against your database before or alongside `db:push`.
 
-Seed the presales users (one Account Manager, one Sales Engineer) and the firewall/switch catalogs:
+Seed users and catalogs:
 
 ```bash
 npm run db:seed
@@ -122,16 +126,22 @@ DATABASE_URL="your-neon-url" npm run db:seed-catalog
 
 Example vanity URL: `https://sizer.yourcompany.com/r/acme-corp-jul2026`
 
+## Workflow (AM ↔ SE)
+
+1. Create link → customer submits → AM (and SEs) notified
+2. AM **Flag for SE** → SE queue filter on dashboard
+3. SE **Mark reviewed** or **Needs changes** → AM notified
+4. AM exports CSV / quote only after **reviewed** (SE can always export)
+5. Mistakes: **Allow customer resubmit** or **SE correction** (version history kept)
+
 ## Sizing logic
 
 - Firewall engine: `lib/sizing/engine.ts`
 - Switch engine: `lib/sizing/switch-engine.ts`
-- Wireless handoff (no automated sizing — presales wireless team scopes APs): `lib/sizing/wireless-handoff.ts`
+- Wireless handoff: `lib/sizing/wireless-handoff.ts`
 - Multi-site orchestration: `lib/sizing/submission-engine.ts`
 
-Model specs live in the `firewall_models` / `switch_models` database tables (seeded from `lib/sizing/catalog.json` and `lib/sizing/switch-catalog.json`). **Sales Engineers can edit specs and real order SKUs directly at `/dashboard/admin/catalog`** — changes apply immediately, no redeploy needed. If the database is unreachable or a table is empty, the engine falls back to the bundled JSON files.
-
-To reset a model back to its shipped defaults, re-run `npm run db:seed-catalog` (this overwrites any admin edits for models that still exist in the bundled JSON).
+Model specs live in `firewall_models` / `switch_models` (seeded from bundled JSON). **Admins** edit specs and SKUs at `/dashboard/admin/catalog`. Changes apply to new submissions immediately; use **Recalculate open BOMs** to refresh active submitted deals. If the database is unreachable or empty, the engine falls back to bundled JSON.
 
 ## Scripts
 
@@ -142,44 +152,22 @@ To reset a model back to its shipped defaults, re-run `npm run db:seed-catalog` 
 | `npm run lint` | Lint |
 | `npm run db:push` | Push schema to Postgres |
 | `npm run db:generate` | Generate Drizzle migrations |
-| `npm run db:seed` | Create/update Account Manager + Sales Engineer users |
-| `npm run db:seed-catalog` | Seed/reset firewall + switch catalog tables from bundled JSON |
-| `npm run docs:guides` | Regenerate the PDF user guides in `public/guides/` |
+| `npm run db:seed` | Create/update seed users |
+| `npm run db:seed-catalog` | Seed/reset catalog tables from bundled JSON |
+| `npm run docs:guides` | Regenerate PDF user guides in `public/guides/` |
 
 ## Project structure
 
 ```
-app/
-  api/blob/upload/    Vercel Blob client-upload token endpoint
-  dashboard/          Presales dashboard (requests, new link, catalog admin)
-  login/              Presales sign-in
-  r/[slug]/           Customer multi-site questionnaire
-components/
-  admin/              Catalog admin tables (SE-only)
-  dashboard/          Dashboard UI (submission detail, tier controls, BOM)
-  form/               Multi-site wizard + per-product forms
-lib/
-  sizing/             Engines (firewall, switch, wireless), catalog store, types
-  db/                 Drizzle schema, demo in-memory store
-  actions.ts          Core server actions (requests, submissions, dashboard)
-  catalog-actions.ts  Catalog admin CRUD server actions
-  tier-actions.ts     Tier override server action
-scripts/
-  migrate-v2.sql             Roles + mandatory label migration
-  migrate-v3.sql             Catalog admin tables migration
-  migrate-v4.sql             Contact name/email columns on sizing_requests
-  migrate-v5.sql             Redundant PSU columns + accessory_models table
-  seed.ts                    User seeding
-  seed-catalog.ts            Catalog seeding (firewalls, switches, accessories)
-  generate-user-guides.ts    Builds the PDF guides in public/guides/
-public/
-  guides/             Generated PDF user guides (committed; regenerate with `npm run docs:guides`)
+app/                  # App Router pages (dashboard, public /r/[slug], partner, admin)
+components/           # UI, forms, dashboard, admin tables
+lib/sizing/           # Engines, catalog, BOM export, submission versions
+lib/db/               # Drizzle schema + demo store
+scripts/              # Seed, migrations, PDF guide generator
+public/guides/        # Generated AM/SE and customer PDFs
 ```
 
-## Known limitations / ideas for next steps
+## Notes
 
-- BOM line items are sizing SKUs without pricing — pricing is expected to happen downstream (SFDC/CPQ)
-- No submission history/audit trail — each sizing link accepts a single submission
-- Wireless APs are never auto-sized; this app only collects and hands off scoping info to the presales wireless team
-- No rate limiting/lockout on repeated wrong-email guesses at the customer email gate
-- Sizing links created before this feature have no contact email on file and remain ungated
+- Subscription term pricing (1/3/5-yr) is intentionally out of scope for the BOM today — size first, price in CPQ.
+- Some protection/support lines may still use sizing-only SKUs until mapped to orderable catalog entries.
