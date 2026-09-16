@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, max } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { isDemoMode } from "@/lib/db/demo-store";
 import {
@@ -13,6 +13,7 @@ import type {
   AccessoryModel,
   AccessoryType,
   CatalogModel,
+  CatalogProvenance,
   Environment,
   SwitchCatalogModel,
 } from "./types";
@@ -162,6 +163,84 @@ export async function getAccessoryByType(
 export const CATALOG_VERSION = staticFirewallCatalog.version;
 export const SWITCH_CATALOG_VERSION = staticSwitchCatalog.version;
 export const ACCESSORY_CATALOG_VERSION = staticAccessoryCatalog.version;
+
+async function firewallProvenanceFromDb(): Promise<CatalogProvenance | null> {
+  try {
+    const rows = await getDb().select().from(firewallModels);
+    if (rows.length === 0) return null;
+    const [latest] = await getDb()
+      .select({ updatedAt: max(firewallModels.updatedAt) })
+      .from(firewallModels);
+    const asOf = latest?.updatedAt?.toISOString()?.slice(0, 10);
+    return {
+      version: CATALOG_VERSION,
+      source: "db",
+      asOf,
+      lastReviewed: asOf,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function switchProvenanceFromDb(): Promise<CatalogProvenance | null> {
+  try {
+    const rows = await getDb().select().from(switchModels);
+    if (rows.length === 0) return null;
+    const [latest] = await getDb()
+      .select({ updatedAt: max(switchModels.updatedAt) })
+      .from(switchModels);
+    const asOf = latest?.updatedAt?.toISOString()?.slice(0, 10);
+    return {
+      version: SWITCH_CATALOG_VERSION,
+      source: "db",
+      asOf,
+      lastReviewed: asOf,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Provenance stamp for firewall recommendations (DB vs bundled JSON). */
+export async function getFirewallCatalogProvenance(): Promise<CatalogProvenance> {
+  if (isDemoMode()) {
+    return {
+      version: CATALOG_VERSION,
+      source: "demo",
+      asOf: CATALOG_VERSION,
+      lastReviewed: CATALOG_VERSION,
+    };
+  }
+  const fromDb = await firewallProvenanceFromDb();
+  if (fromDb) return fromDb;
+  return {
+    version: CATALOG_VERSION,
+    source: "bundled-json",
+    asOf: CATALOG_VERSION,
+    lastReviewed: CATALOG_VERSION,
+  };
+}
+
+/** Provenance stamp for switch recommendations. */
+export async function getSwitchCatalogProvenance(): Promise<CatalogProvenance> {
+  if (isDemoMode()) {
+    return {
+      version: SWITCH_CATALOG_VERSION,
+      source: "demo",
+      asOf: SWITCH_CATALOG_VERSION,
+      lastReviewed: SWITCH_CATALOG_VERSION,
+    };
+  }
+  const fromDb = await switchProvenanceFromDb();
+  if (fromDb) return fromDb;
+  return {
+    version: SWITCH_CATALOG_VERSION,
+    source: "bundled-json",
+    asOf: SWITCH_CATALOG_VERSION,
+    lastReviewed: SWITCH_CATALOG_VERSION,
+  };
+}
 
 // --- Admin CRUD (used by the catalog admin page) ---
 

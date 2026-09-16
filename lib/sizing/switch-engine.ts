@@ -1,6 +1,17 @@
-import { SWITCH_CATALOG_VERSION, getSwitchCatalog } from "./catalog-store";
+import {
+  getSwitchCatalog,
+  getSwitchCatalogProvenance,
+} from "./catalog-store";
+import {
+  OPT_SPARE_PORTS,
+  REC_SPARE_PORTS,
+  formatWhyRecommended,
+  pickTierIndexes,
+} from "./tier-policy";
 import type {
   BomLineItem,
+  CatalogProvenance,
+  SizingConfidence,
   SizingTier,
   SwitchCatalogModel,
   SwitchModelOption,
@@ -18,22 +29,40 @@ function requiredPoeWatts(answers: SwitchSiteAnswers): number {
 function modelMeetsSwitchConstraints(
   model: SwitchCatalogModel,
   answers: SwitchSiteAnswers,
-): boolean {
-  if (model.portCount < answers.switchPortCount) return false;
-  if (answers.needs2_5GbE && model.ports2_5GbE < 1) return false;
-  if (answers.needs10GbE && model.ports10GbE < 1) return false;
-  if (answers.needs10GbSfpUplink && model.sfpPlusUplinkCount < 1) return false;
+): { meets: boolean; failingConstraint?: string } {
+  if (model.portCount < answers.switchPortCount) {
+    return {
+      meets: false,
+      failingConstraint: `Ports ${model.portCount} < ${answers.switchPortCount} required`,
+    };
+  }
+  if (answers.needs2_5GbE && model.ports2_5GbE < 1) {
+    return { meets: false, failingConstraint: "2.5GbE access ports required" };
+  }
+  if (answers.needs10GbE && model.ports10GbE < 1) {
+    return { meets: false, failingConstraint: "10GbE access ports required" };
+  }
+  if (answers.needs10GbSfpUplink && model.sfpPlusUplinkCount < 1) {
+    return { meets: false, failingConstraint: "10Gb SFP+ uplink required" };
+  }
 
   if (answers.needsPoE) {
-    if (!model.poeSupported) return false;
+    if (!model.poeSupported) {
+      return { meets: false, failingConstraint: "PoE support required" };
+    }
     const watts = requiredPoeWatts(answers);
-    if (watts > model.poeBudgetWatts) return false;
+    if (watts > model.poeBudgetWatts) {
+      return {
+        meets: false,
+        failingConstraint: `PoE budget ${model.poeBudgetWatts}W < ${watts}W required`,
+      };
+    }
     if ((answers.poeBt60wDeviceCount ?? 0) > 0 && !model.supportsBtPoE) {
-      return false;
+      return { meets: false, failingConstraint: "BT / 60W PoE support required" };
     }
   }
 
-  return true;
+  return { meets: true };
 }
 
 function sortSwitchModels(models: SwitchCatalogModel[]): SwitchCatalogModel[] {
@@ -42,11 +71,9 @@ function sortSwitchModels(models: SwitchCatalogModel[]): SwitchCatalogModel[] {
 
 const TIER_GUIDANCE: Record<SizingTier, string> = {
   minimum:
-    "Meets requirements with no spare ports or PoE budget — consider Recommended or Optimal if you expect to add devices.",
-  recommended:
-    "Provides spare ports and PoE headroom above the minimum requirement. This is the default quoted model.",
-  optimal:
-    "Maximum spare capacity for future device additions or higher-power PoE devices.",
+    "Meets requirements with no spare-port band — consider Recommended or Optimal if you expect to add devices.",
+  recommended: `Smallest model with ≥${REC_SPARE_PORTS} spare ports above the request. This is the default quoted model.`,
+  optimal: `Smallest model with ≥${OPT_SPARE_PORTS} spare ports for future device additions or higher-power PoE devices.`,
 };
 
 function buildModelCaveats(
@@ -83,27 +110,47 @@ function buildModelCaveats(
   return caveats;
 }
 
-export async function calculateSwitchRecommendation(
+function computeConfidence(input: {
+  noModelMeetsRequirements: boolean;
+  caveats: string[];
+  sparePorts: number;
+}): SizingConfidence {
+  if (input.noModelMeetsRequirements) return "red";
+  if (
+    input.sparePorts <= 2 ||
+    input.caveats.some((c) => c.includes("Uses ~") || c.includes("Only "))
+  ) {
+    return "amber";
+  }
+  return "green";
+}
+
+/** Pure calculator — used by runtime + golden tests. */
+export function calculateSwitchRecommendationFromModels(
   answers: SwitchSiteAnswers,
-): Promise<SwitchRecommendation> {
-  const allModels = await getSwitchCatalog();
+  allModels: SwitchCatalogModel[],
+  provenance: CatalogProvenance,
+): SwitchRecommendation {
   const candidates = sortSwitchModels(allModels);
 
-  let minIndex = candidates.findIndex((model) =>
-    modelMeetsSwitchConstraints(model, answers),
-  );
-
-  const noModelMeetsRequirements = minIndex === -1;
-  if (noModelMeetsRequirements) {
-    minIndex = candidates.length - 1;
-  }
-
-  const recommendedIndex = Math.min(minIndex + 1, candidates.length - 1);
-  const optimalIndex = Math.min(minIndex + 2, candidates.length - 1);
+  const {
+    minIndex,
+    recommendedIndex,
+    optimalIndex,
+    noModelMeetsRequirements,
+  } = pickTierIndexes({
+    candidateCount: candidates.length,
+    meetsAt: (i) => modelMeetsSwitchConstraints(candidates[i], answers).meets,
+    capacityAt: (i) =>
+      Math.max(0, candidates[i].portCount - answers.switchPortCount),
+    recommendedBand: REC_SPARE_PORTS,
+    optimalBand: OPT_SPARE_PORTS,
+  });
 
   function buildOption(tier: SizingTier, index: number): SwitchModelOption {
     const model = candidates[index];
     const caveats = buildModelCaveats(model, answers);
+    const sparePorts = Math.max(0, model.portCount - answers.switchPortCount);
 
     if (noModelMeetsRequirements && index === minIndex) {
       caveats.unshift(
@@ -122,6 +169,7 @@ export async function calculateSwitchRecommendation(
       modelId: model.id,
       modelName: model.name,
       portCount: model.portCount,
+      sparePorts,
       caveats,
     };
   }
@@ -132,10 +180,38 @@ export async function calculateSwitchRecommendation(
     buildOption("optimal", optimalIndex),
   ];
 
-  // The "recommended" tier drives the default BOM/quote — never quote the bare minimum.
   const selected = candidates[recommendedIndex];
+  const minModel = candidates[minIndex];
+  const minOption = modelOptions[0];
+  const recOption = modelOptions[1];
 
-  const sizingNotes: string[] = [];
+  let bindingConstraint = `Primary driver: ${answers.switchPortCount} ports`;
+  if (noModelMeetsRequirements) {
+    bindingConstraint =
+      "No switch fully meets requirements — largest available model selected";
+  } else if (minIndex > 0) {
+    const prev = modelMeetsSwitchConstraints(candidates[minIndex - 1], answers);
+    if (prev.failingConstraint) bindingConstraint = prev.failingConstraint;
+  }
+
+  const whyRecommended = formatWhyRecommended({
+    minName: minModel.name,
+    recName: selected.name,
+    minCapacityLabel: `${minOption.sparePorts ?? 0} spare ports`,
+    recCapacityLabel: `${recOption.sparePorts ?? 0} spare ports`,
+    bandLabel: `≥${REC_SPARE_PORTS} spare ports`,
+  });
+
+  const confidence = computeConfidence({
+    noModelMeetsRequirements,
+    caveats: recOption.caveats,
+    sparePorts: recOption.sparePorts ?? 0,
+  });
+
+  const sizingNotes: string[] = [
+    `Binding constraint: ${bindingConstraint}`,
+    whyRecommended,
+  ];
   if (noModelMeetsRequirements) {
     sizingNotes.push(
       "No switch fully met all constraints; recommending the largest available model.",
@@ -155,18 +231,34 @@ export async function calculateSwitchRecommendation(
     );
   }
 
-  const bom = buildSwitchBom(selected, answers.switchQuantity ?? 1);
-
   return {
-    catalogVersion: SWITCH_CATALOG_VERSION,
+    catalogVersion: provenance.version,
+    catalogProvenance: provenance,
     modelId: selected.id,
     modelName: selected.name,
+    bindingConstraint,
+    whyRecommended,
+    confidence,
     sizingNotes,
     constraintsMet,
     modelOptions,
     quotedTier: "recommended",
-    bom,
+    bom: buildSwitchBom(selected, answers.switchQuantity ?? 1),
   };
+}
+
+export async function calculateSwitchRecommendation(
+  answers: SwitchSiteAnswers,
+): Promise<SwitchRecommendation> {
+  const [allModels, provenance] = await Promise.all([
+    getSwitchCatalog(),
+    getSwitchCatalogProvenance(),
+  ]);
+  return calculateSwitchRecommendationFromModels(
+    answers,
+    allModels,
+    provenance,
+  );
 }
 
 function buildSwitchBom(

@@ -76,9 +76,11 @@ export default async function SizingLogicPage() {
             <Step number={1} title="Filter and sort the catalog">
               <p>
                 Keep only models that support the chosen deployment environment
-                (physical / virtual / AWS / Azure). Sort remaining models by{" "}
-                <strong>Threat Protection Mbps</strong> ascending (smallest →
-                largest).
+                (physical / virtual / AWS / Azure). Sort remaining models by the{" "}
+                <strong>same usable throughput metric</strong> used for
+                comparison (Threat / Xstream blend for the selected protection +
+                TLS scope), ascending (smallest → largest) — not by raw Threat
+                Protection alone.
               </p>
             </Step>
 
@@ -200,7 +202,12 @@ export default async function SizingLogicPage() {
                   If SSL VPN (or both): max SSL VPN tunnels ≥ requested tunnels
                 </li>
                 <li>
-                  If any VPN: model IPsec VPN Mbps ≥ peak VPN throughput
+                  If IPsec (or both): model IPsec VPN Mbps ≥ peak VPN throughput
+                </li>
+                <li>
+                  If SSL VPN (or both): model SSL VPN Mbps ≥ peak VPN throughput
+                  (falls back to IPsec VPN Mbps when SSL capacity is not set on
+                  the catalog model)
                 </li>
                 <li>
                   If endpoints/auth users given: model max users ≥ that count
@@ -216,23 +223,27 @@ export default async function SizingLogicPage() {
               </p>
               <ul className="list-disc space-y-1 pl-5">
                 <li>
-                  <strong>Recommended</strong> = next model up (Minimum index +
-                  1), or the largest model if already at the top
+                  <strong>Recommended</strong> = smallest model at or above
+                  Minimum with ≥25% throughput headroom above{" "}
+                  <code>requiredMbps</code> (or the largest model if none clear
+                  the band)
                 </li>
                 <li>
-                  <strong>Optimal</strong> = two steps up (Minimum index + 2), or
-                  the largest model if already at the top
+                  <strong>Optimal</strong> = smallest model at or above
+                  Recommended with ≥50% throughput headroom (or the largest
+                  model if none clear the band)
                 </li>
               </ul>
               <p>
                 If <em>no</em> model passes, the app falls back to the largest
                 model in that environment and flags that nothing fully met the
-                requirement.
+                requirement (confidence: Red).
               </p>
               <p>
                 The <strong>default quoted BOM always uses Recommended</strong>,
                 never Minimum. Account Managers / SEs can override the quoted
-                tier on the submission detail page.
+                tier on the submission detail page. Tier pickers show the
+                headroom-band rule next to each option.
               </p>
               <Formula>
                 {`headroomPercent = round((modelThroughput / requiredMbps − 1) × 100)`}
@@ -254,11 +265,19 @@ export default async function SizingLogicPage() {
                   Redundant PSU requested but no PSU SKU configured for that
                   model in Catalog admin
                 </li>
+                <li>
+                  SFP+ required — interface fit / port count not fully validated
+                  from catalog (or optics count exceeds listed SFP+ ports)
+                </li>
+                <li>
+                  Integrated Wi‑Fi SKU (…W) when a non‑W appliance may be
+                  preferred
+                </li>
               </ul>
               <p>
-                A “primary sizing driver” note is also attached (throughput,
-                VPN peak, internal traffic, endpoint count, or full TLS under
-                Xstream).
+                Each recommendation also stores a binding constraint, a
+                why-Recommended line, a confidence chip (Green / Amber / Red),
+                and catalog provenance (version, source, as-of / last reviewed).
               </p>
             </Step>
 
@@ -317,10 +336,11 @@ export default async function SizingLogicPage() {
               {`requiredPoeWatts = (30W devices × 30) + (60W BT devices × 60)`}
             </Formula>
             <p>
-              Minimum / Recommended / Optimal use the same “smallest that fits,
-              then +1 / +2” pattern as firewalls. Default quote is Recommended.
-              PoE-capable models also show how many Sophos APs they can roughly
-              power at 30W (PoE+) or 60W (BT) from the catalog PoE budget.
+              Minimum / Recommended / Optimal use spare-port capacity bands
+              (Recommended ≥4 spare ports, Optimal ≥12), not catalog index +1 /
+              +2. Default quote is Recommended. PoE-capable models also show how
+              many Sophos APs they can roughly power at 30W (PoE+) or 60W (BT)
+              from the catalog PoE budget.
             </p>
           </CardContent>
         </Card>

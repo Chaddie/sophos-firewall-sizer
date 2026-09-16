@@ -130,6 +130,11 @@ export interface CatalogModel {
   threatProtectionMbps: number;
   xstreamSslMbps: number;
   ipsecVpnMbps: number;
+  /**
+   * SSL VPN throughput (Mbps). When absent, IPsec VPN Mbps is used as a
+   * conservative fallback for SSL / both VPN peak checks.
+   */
+  sslVpnMbps?: number;
   maxIpsecTunnels: number;
   maxSslVpnTunnels: number;
   maxConcurrentConnections: number;
@@ -143,6 +148,21 @@ export interface CatalogModel {
   /** Optional spare/redundant PSU SKU for this physical model. */
   redundantPsuSku?: string;
   redundantPsuName?: string;
+  /** Optional SFP+ port count for interface-aware caveats. */
+  sfpPlusPortCount?: number;
+  /** True when the SKU includes Wi‑Fi radios (interface caveat). */
+  wifiIntegrated?: boolean;
+}
+
+/** Green = constraints met with headroom; amber = tight; red = no model fully meets. */
+export type SizingConfidence = "green" | "amber" | "red";
+
+export interface CatalogProvenance {
+  version: string;
+  source: "db" | "bundled-json" | "demo";
+  /** ISO date or catalog version stamp shown as “as of”. */
+  asOf?: string;
+  lastReviewed?: string;
 }
 
 export interface AccessoryModel {
@@ -192,6 +212,8 @@ export interface FirewallModelOption {
 /** Legacy v1 single-site recommendation. */
 export interface SizingRecommendation {
   catalogVersion: string;
+  /** Where the catalog came from when this recommendation was calculated. */
+  catalogProvenance?: CatalogProvenance;
   modelId: string;
   modelName: string;
   environment: Environment;
@@ -199,6 +221,11 @@ export interface SizingRecommendation {
   requiredMbps: number;
   estimatedConcurrentConnections: number;
   sizingBasis: string;
+  /** Constraint that most limited the Minimum pick (or fallback reason). */
+  bindingConstraint?: string;
+  /** One-line explanation of why Recommended differs from (or matches) Minimum. */
+  whyRecommended?: string;
+  confidence?: SizingConfidence;
   constraintsMet: string[];
   sizingNotes: string[];
   modelOptions?: FirewallModelOption[];
@@ -216,13 +243,19 @@ export interface SwitchModelOption {
   modelId: string;
   modelName: string;
   portCount: number;
+  /** Spare ports above the requested count (capacity headroom signal). */
+  sparePorts?: number;
   caveats: string[];
 }
 
 export interface SwitchRecommendation {
   catalogVersion: string;
+  catalogProvenance?: CatalogProvenance;
   modelId: string;
   modelName: string;
+  bindingConstraint?: string;
+  whyRecommended?: string;
+  confidence?: SizingConfidence;
   sizingNotes: string[];
   constraintsMet: string[];
   modelOptions?: SwitchModelOption[];

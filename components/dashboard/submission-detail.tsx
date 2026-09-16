@@ -1,5 +1,6 @@
 import { CopyQuoteButton } from "@/components/dashboard/copy-quote-button";
 import { ExportQuoteButtons } from "@/components/dashboard/export-quote-buttons";
+import { SizingExplainability } from "@/components/dashboard/sizing-explainability";
 import {
   FirewallTierControl,
   SwitchTierControl,
@@ -137,6 +138,14 @@ export function SubmissionDetail({
                         value={site.firewall.sizingBasis}
                       />
                     </div>
+                    <SizingExplainability
+                      bindingConstraint={site.firewall.bindingConstraint}
+                      whyRecommended={site.firewall.whyRecommended}
+                      confidence={site.firewall.confidence}
+                      sizingNotes={site.firewall.sizingNotes}
+                      constraintsMet={site.firewall.constraintsMet}
+                      catalogProvenance={site.firewall.catalogProvenance}
+                    />
                     {site.firewall.modelOptions &&
                       site.firewall.modelOptions.length > 0 && (
                         <FirewallTierControl
@@ -153,6 +162,14 @@ export function SubmissionDetail({
                   <div className="space-y-2 rounded-lg bg-muted/40 p-4">
                     <p className="text-sm font-medium">Switch</p>
                     <Info label="Model" value={site.switches.modelName} />
+                    <SizingExplainability
+                      bindingConstraint={site.switches.bindingConstraint}
+                      whyRecommended={site.switches.whyRecommended}
+                      confidence={site.switches.confidence}
+                      sizingNotes={site.switches.sizingNotes}
+                      constraintsMet={site.switches.constraintsMet}
+                      catalogProvenance={site.switches.catalogProvenance}
+                    />
                     {site.switches.modelOptions &&
                       site.switches.modelOptions.length > 0 && (
                         <SwitchTierControl
@@ -333,6 +350,14 @@ export function SubmissionDetail({
             />
             <Info label="Sizing basis" value={legacy.sizingBasis} />
           </div>
+          <SizingExplainability
+            bindingConstraint={legacy.bindingConstraint}
+            whyRecommended={legacy.whyRecommended}
+            confidence={legacy.confidence}
+            sizingNotes={legacy.sizingNotes}
+            constraintsMet={legacy.constraintsMet}
+            catalogProvenance={legacy.catalogProvenance}
+          />
           {legacy.instanceRecommendation && (
             <Info
               label="Instance / sizing"

@@ -1,14 +1,26 @@
-import { CATALOG_VERSION, getAccessoryByType, getFirewallCatalog } from "./catalog-store";
+import {
+  getAccessoryByType,
+  getFirewallCatalog,
+  getFirewallCatalogProvenance,
+} from "./catalog-store";
 import { normalizeStoredRecommendation } from "./bom-normalize";
+import {
+  OPT_HEADROOM_PERCENT,
+  REC_HEADROOM_PERCENT,
+  formatWhyRecommended,
+  pickTierIndexes,
+} from "./tier-policy";
 import type {
   BomLineItem,
   CatalogModel,
+  CatalogProvenance,
   Environment,
   FirewallModelOption,
   FirewallModelTier,
   ProtectionLevel,
   SiteRole,
   SizingAnswers,
+  SizingConfidence,
   SizingRecommendation,
   TlsInspectionScope,
 } from "./types";
@@ -16,7 +28,8 @@ import type {
 const HEADROOM_FACTOR = 1.25;
 const CONNECTIONS_PER_ENDPOINT = 75;
 
-function getThroughputMetric(
+/** Exported for golden tests and admin docs. */
+export function getThroughputMetric(
   model: CatalogModel,
   protection: ProtectionLevel,
   tlsScope: TlsInspectionScope,
@@ -37,12 +50,24 @@ function getThroughputMetric(
   return xstream * 0.6 + threat * 0.4;
 }
 
-function estimateConcurrentConnections(answers: SizingAnswers): number {
+function sslVpnCapacityMbps(model: CatalogModel): number {
+  return model.sslVpnMbps ?? model.ipsecVpnMbps;
+}
+
+function estimateConcurrentConnections(answers: SizingAnswers): {
+  connections: number;
+  usedDefaultEndpoints: boolean;
+} {
+  const hasExplicit =
+    answers.endpointCount != null || answers.authUserCount != null;
   const endpoints =
     answers.endpointCount ??
     answers.authUserCount ??
     (answers.siteRole === "branch" ? 25 : 50);
-  return endpoints * CONNECTIONS_PER_ENDPOINT;
+  return {
+    connections: endpoints * CONNECTIONS_PER_ENDPOINT,
+    usedDefaultEndpoints: !hasExplicit,
+  };
 }
 
 export function computeRequiredMbps(answers: SizingAnswers): {
@@ -82,7 +107,7 @@ function modelMeetsConstraints(
   answers: SizingAnswers,
   requiredMbps: number,
   requiredConnections: number,
-): { meets: boolean; notes: string[] } {
+): { meets: boolean; notes: string[]; failingConstraint?: string } {
   const throughput = getThroughputMetric(
     model,
     answers.protection,
@@ -91,61 +116,58 @@ function modelMeetsConstraints(
   const notes: string[] = [];
 
   if (throughput < requiredMbps) {
+    const failingConstraint = `Throughput ${Math.round(throughput)} Mbps < ${Math.round(requiredMbps)} Mbps required`;
     return {
       meets: false,
-      notes: [
-        `Throughput ${Math.round(throughput)} Mbps < ${Math.round(requiredMbps)} Mbps required`,
-      ],
+      notes: [failingConstraint],
+      failingConstraint,
     };
   }
 
   if (requiredConnections > model.maxConcurrentConnections) {
-    return {
-      meets: false,
-      notes: [
-        `Est. connections ${requiredConnections.toLocaleString()} > max ${model.maxConcurrentConnections.toLocaleString()}`,
-      ],
-    };
+    const failingConstraint = `Est. connections ${requiredConnections.toLocaleString()} > max ${model.maxConcurrentConnections.toLocaleString()}`;
+    return { meets: false, notes: [failingConstraint], failingConstraint };
   }
 
   if (answers.vpnType === "ipsec" || answers.vpnType === "both") {
     const ipsec = answers.ipsecTunnels ?? 0;
     if (ipsec > model.maxIpsecTunnels) {
-      return {
-        meets: false,
-        notes: [`IPsec tunnels ${ipsec} > max ${model.maxIpsecTunnels}`],
-      };
+      const failingConstraint = `IPsec tunnels ${ipsec} > max ${model.maxIpsecTunnels}`;
+      return { meets: false, notes: [failingConstraint], failingConstraint };
     }
   }
 
   if (answers.vpnType === "ssl" || answers.vpnType === "both") {
     const ssl = answers.sslVpnTunnels ?? 0;
     if (ssl > model.maxSslVpnTunnels) {
-      return {
-        meets: false,
-        notes: [`SSL VPN tunnels ${ssl} > max ${model.maxSslVpnTunnels}`],
-      };
+      const failingConstraint = `SSL VPN tunnels ${ssl} > max ${model.maxSslVpnTunnels}`;
+      return { meets: false, notes: [failingConstraint], failingConstraint };
     }
   }
 
-  if (answers.vpnType !== "none") {
-    const vpnPeak = answers.peakVpnThroughputMbps ?? 0;
-    if (vpnPeak > model.ipsecVpnMbps) {
-      return {
-        meets: false,
-        notes: [
-          `VPN throughput ${vpnPeak} Mbps exceeds model capacity ${model.ipsecVpnMbps} Mbps`,
-        ],
-      };
+  const vpnPeak = answers.peakVpnThroughputMbps ?? 0;
+  if (vpnPeak > 0 && answers.vpnType !== "none") {
+    if (answers.vpnType === "ipsec" || answers.vpnType === "both") {
+      if (vpnPeak > model.ipsecVpnMbps) {
+        const failingConstraint = `IPsec VPN throughput ${vpnPeak} Mbps exceeds model capacity ${model.ipsecVpnMbps} Mbps`;
+        return { meets: false, notes: [failingConstraint], failingConstraint };
+      }
+    }
+    if (answers.vpnType === "ssl" || answers.vpnType === "both") {
+      const sslCap = sslVpnCapacityMbps(model);
+      if (vpnPeak > sslCap) {
+        const source =
+          model.sslVpnMbps != null ? "SSL VPN" : "SSL VPN (fallback IPsec)";
+        const failingConstraint = `${source} throughput ${vpnPeak} Mbps exceeds model capacity ${sslCap} Mbps`;
+        return { meets: false, notes: [failingConstraint], failingConstraint };
+      }
     }
   }
 
   const userCount = answers.endpointCount ?? answers.authUserCount ?? 0;
   if (userCount > 0 && userCount > model.maxUsers) {
-    return {
-      meets: false,
-      notes: [`Users/endpoints ${userCount} > max ${model.maxUsers}`],
-    };
+    const failingConstraint = `Users/endpoints ${userCount} > max ${model.maxUsers}`;
+    return { meets: false, notes: [failingConstraint], failingConstraint };
   }
 
   notes.push(
@@ -161,9 +183,16 @@ function getModelsForEnvironment(
   return models.filter((m) => m.environment.includes(env));
 }
 
-function sortModels(models: CatalogModel[]): CatalogModel[] {
+/** Sort by the same protection/TLS throughput metric used for comparison. */
+export function sortModels(
+  models: CatalogModel[],
+  protection: ProtectionLevel,
+  tlsScope: TlsInspectionScope,
+): CatalogModel[] {
   return [...models].sort(
-    (a, b) => a.threatProtectionMbps - b.threatProtectionMbps,
+    (a, b) =>
+      getThroughputMetric(a, protection, tlsScope) -
+      getThroughputMetric(b, protection, tlsScope),
   );
 }
 
@@ -242,7 +271,72 @@ function buildModelCaveats(
     );
   }
 
+  if (answers.environment === "physical" && answers.requiresSfpPlus) {
+    if (model.sfpPlusPortCount == null) {
+      caveats.push(
+        "SFP+ ports requested — catalog does not list SFP+ port count for this model; confirm interface fit and optics with the SE.",
+      );
+    } else if (
+      answers.sfpTransceiverCount != null &&
+      answers.sfpTransceiverCount > model.sfpPlusPortCount
+    ) {
+      caveats.push(
+        `Requested ${answers.sfpTransceiverCount} SFP+ optics but this model lists only ${model.sfpPlusPortCount} SFP+ port(s).`,
+      );
+    } else {
+      caveats.push(
+        `SFP+ required — this model lists ${model.sfpPlusPortCount} SFP+ port(s); confirm transceiver type with the customer.`,
+      );
+    }
+  }
+
+  if (model.wifiIntegrated || /w$/i.test(model.id) || /W$/.test(model.sku ?? "")) {
+    caveats.push(
+      "This SKU includes integrated Wi‑Fi — confirm whether wireless radios are needed or a non‑W appliance SKU is preferred.",
+    );
+  }
+
   return caveats;
+}
+
+function computeConfidence(input: {
+  noModelMeetsRequirements: boolean;
+  caveats: string[];
+  headroomPercent: number;
+}): SizingConfidence {
+  if (input.noModelMeetsRequirements) return "red";
+  if (
+    input.headroomPercent < 5 ||
+    input.caveats.some((c) => c.includes("Uses ~") || c.includes("minimal"))
+  ) {
+    return "amber";
+  }
+  return "green";
+}
+
+function resolveBindingConstraint(input: {
+  noModelMeetsRequirements: boolean;
+  candidates: CatalogModel[];
+  minIndex: number;
+  answers: SizingAnswers;
+  requiredMbps: number;
+  requiredConnections: number;
+  drivingFactor: string;
+}): string {
+  if (input.noModelMeetsRequirements) {
+    return "No model fully meets requirements — largest available model selected";
+  }
+  if (input.minIndex > 0) {
+    const prev = input.candidates[input.minIndex - 1];
+    const result = modelMeetsConstraints(
+      prev,
+      input.answers,
+      input.requiredMbps,
+      input.requiredConnections,
+    );
+    if (result.failingConstraint) return result.failingConstraint;
+  }
+  return `Primary driver: ${input.drivingFactor}`;
 }
 
 async function buildBom(
@@ -366,38 +460,53 @@ function getInstanceRecommendation(
 
 const TIER_GUIDANCE: Record<FirewallModelTier, string> = {
   minimum:
-    "Meets requirements with no spare headroom — consider Recommended or Optimal if you expect growth or traffic spikes.",
-  recommended:
-    "Provides headroom above the minimum requirement for typical 3-year growth. This is the default quoted model.",
-  optimal:
-    "Maximum available headroom for peak loads, future growth, or additional features.",
+    "Meets requirements with no spare headroom band — consider Recommended or Optimal if you expect growth or traffic spikes.",
+  recommended: `Smallest model with ≥${REC_HEADROOM_PERCENT}% throughput headroom above the sized requirement. This is the default quoted model.`,
+  optimal: `Smallest model with ≥${OPT_HEADROOM_PERCENT}% throughput headroom for peak loads, future growth, or additional features.`,
 };
 
-export async function calculateRecommendation(
+/** Pure calculator — used by runtime + golden tests. */
+export async function calculateRecommendationFromModels(
   answers: SizingAnswers,
+  allModels: CatalogModel[],
+  provenance: CatalogProvenance,
 ): Promise<SizingRecommendation> {
   const { requiredMbps, peakDemand, vpnDemand, sizingBasis } =
     computeRequiredMbps(answers);
-  const requiredConnections = estimateConcurrentConnections(answers);
+  const { connections: requiredConnections, usedDefaultEndpoints } =
+    estimateConcurrentConnections(answers);
 
-  const allModels = await getFirewallCatalog();
   const candidates = sortModels(
     getModelsForEnvironment(answers.environment, allModels),
+    answers.protection,
+    answers.tlsInspectionScope,
   );
 
-  let minIndex = candidates.findIndex(
-    (model) =>
-      modelMeetsConstraints(model, answers, requiredMbps, requiredConnections)
-        .meets,
-  );
-
-  const noModelMeetsRequirements = minIndex === -1;
-  if (noModelMeetsRequirements) {
-    minIndex = candidates.length - 1;
-  }
-
-  const recommendedIndex = Math.min(minIndex + 1, candidates.length - 1);
-  const optimalIndex = Math.min(minIndex + 2, candidates.length - 1);
+  const {
+    minIndex,
+    recommendedIndex,
+    optimalIndex,
+    noModelMeetsRequirements,
+  } = pickTierIndexes({
+    candidateCount: candidates.length,
+    meetsAt: (i) =>
+      modelMeetsConstraints(
+        candidates[i],
+        answers,
+        requiredMbps,
+        requiredConnections,
+      ).meets,
+    capacityAt: (i) => {
+      const throughput = getThroughputMetric(
+        candidates[i],
+        answers.protection,
+        answers.tlsInspectionScope,
+      );
+      return Math.round((throughput / requiredMbps - 1) * 100);
+    },
+    recommendedBand: REC_HEADROOM_PERCENT,
+    optimalBand: OPT_HEADROOM_PERCENT,
+  });
 
   function buildOption(
     tier: FirewallModelTier,
@@ -452,10 +561,18 @@ export async function calculateRecommendation(
 
   // The "recommended" tier drives the default BOM/quote — never quote the bare minimum.
   const selected = candidates[recommendedIndex];
+  const minModel = candidates[minIndex];
+  const minOption = modelOptions[0];
+  const recOption = modelOptions[1];
 
   let drivingFactor = "throughput";
   if (vpnDemand >= peakDemand) {
-    drivingFactor = "VPN peak throughput";
+    drivingFactor =
+      answers.vpnType === "ssl"
+        ? "SSL VPN peak throughput"
+        : answers.vpnType === "ipsec"
+          ? "IPsec VPN peak throughput"
+          : "VPN peak throughput";
   } else if (
     answers.internalTrafficEnabled &&
     (answers.internalTrafficMbps ?? 0) >= peakDemand * 0.5
@@ -473,7 +590,40 @@ export async function calculateRecommendation(
     drivingFactor = "full TLS inspection under Xstream protection";
   }
 
-  const sizingNotes: string[] = [`Primary sizing driver: ${drivingFactor}`];
+  const bindingConstraint = resolveBindingConstraint({
+    noModelMeetsRequirements,
+    candidates,
+    minIndex,
+    answers,
+    requiredMbps,
+    requiredConnections,
+    drivingFactor,
+  });
+
+  const whyRecommended = formatWhyRecommended({
+    minName: minModel.name,
+    recName: selected.name,
+    minCapacityLabel: `+${minOption.headroomPercent}% headroom`,
+    recCapacityLabel: `+${recOption.headroomPercent}% headroom`,
+    bandLabel: `≥${REC_HEADROOM_PERCENT}% headroom`,
+  });
+
+  const confidence = computeConfidence({
+    noModelMeetsRequirements,
+    caveats: recOption.caveats,
+    headroomPercent: recOption.headroomPercent,
+  });
+
+  const sizingNotes: string[] = [
+    `Primary sizing driver: ${drivingFactor}`,
+    `Binding constraint: ${bindingConstraint}`,
+    whyRecommended,
+  ];
+  if (usedDefaultEndpoints) {
+    sizingNotes.push(
+      `Endpoint count was not provided — estimated concurrent connections using a default of ${answers.siteRole === "branch" ? 25 : 50} endpoints for this site role.`,
+    );
+  }
   if (noModelMeetsRequirements) {
     sizingNotes.push(
       "No model fully met all constraints; recommending the largest available model.",
@@ -506,7 +656,8 @@ export async function calculateRecommendation(
   const bom = await buildBom(selected, answers, answers.environment);
 
   return {
-    catalogVersion: CATALOG_VERSION,
+    catalogVersion: provenance.version,
+    catalogProvenance: provenance,
     modelId: selected.id,
     modelName: selected.name,
     environment: answers.environment,
@@ -514,6 +665,9 @@ export async function calculateRecommendation(
     requiredMbps: Math.round(requiredMbps),
     estimatedConcurrentConnections: requiredConnections,
     sizingBasis,
+    bindingConstraint,
+    whyRecommended,
+    confidence,
     constraintsMet,
     sizingNotes,
     modelOptions,
@@ -525,6 +679,16 @@ export async function calculateRecommendation(
       answers.environment,
     ),
   };
+}
+
+export async function calculateRecommendation(
+  answers: SizingAnswers,
+): Promise<SizingRecommendation> {
+  const [allModels, provenance] = await Promise.all([
+    getFirewallCatalog(),
+    getFirewallCatalogProvenance(),
+  ]);
+  return calculateRecommendationFromModels(answers, allModels, provenance);
 }
 
 /** Rebuilds the BOM/instance fields for a specific catalog model, used when an
