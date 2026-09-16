@@ -50,6 +50,11 @@ export function TieredModelOptions({
   return (
     <div>
       <p className="mb-2 text-sm font-medium">{title}</p>
+      <p className="text-muted-foreground mb-3 text-xs">
+        Tiers use capacity bands — Recommended ≥25% throughput headroom (or ≥4
+        spare switch ports); Optimal ≥50% (or ≥12 spare ports). Default quote is
+        Recommended.
+      </p>
       <div className="grid gap-3 sm:grid-cols-3">
         {options.map((opt) => {
           const isQuoted = opt.tier === quotedTier;

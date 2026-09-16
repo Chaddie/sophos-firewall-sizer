@@ -11,7 +11,8 @@
     "db:generate": "drizzle-kit generate",
     "db:seed": "tsx scripts/seed.ts",
     "db:seed-catalog": "tsx scripts/seed-catalog.ts",
-    "docs:guides": "tsx scripts/generate-user-guides.ts"
+    "docs:guides": "tsx scripts/generate-user-guides.ts",
+    "test": "tsx --test lib/sizing/engine.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

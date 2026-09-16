@@ -13,6 +13,10 @@ import {
   updateOpportunityIdAction,
 } from "@/lib/request-actions";
 import {
+  NEEDS_CHANGES_TEMPLATES,
+  type FlagChecklistItem,
+} from "@/lib/sizing/flag-checklist";
+import {
   formatSeReviewNotePrefix,
   resolveReviewNotes,
 } from "@/lib/sizing/review-notes";
@@ -36,6 +40,8 @@ export function RequestWorkflowPanel({
   reviewedAt,
   reviewedById,
   hasSubmission = false,
+  flagChecklist = [],
+  hasAlignedSe = false,
 }: {
   requestId: string;
   isSe: boolean;
@@ -50,12 +56,15 @@ export function RequestWorkflowPanel({
   reviewedAt?: Date | string | null;
   reviewedById?: string | null;
   hasSubmission?: boolean;
+  flagChecklist?: FlagChecklistItem[];
+  hasAlignedSe?: boolean;
 }) {
   const router = useRouter();
   const [note, setNote] = useState("");
   const [opp, setOpp] = useState(opportunityId ?? "");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [notifyAllSes, setNotifyAllSes] = useState(false);
 
   const archived = Boolean(archivedAt);
   const notes = resolveReviewNotes({
@@ -65,11 +74,16 @@ export function RequestWorkflowPanel({
     reviewedById,
   });
   const awaitingResubmit = status === "pending" && hasSubmission;
+  const showChecklist =
+    (reviewStatus === "flagged" || reviewStatus === "needs_changes") &&
+    flagChecklist.length > 0;
 
   async function flag() {
     setLoading(true);
     setError(null);
-    const result = await flagRequestForSeAction(requestId, note);
+    const result = await flagRequestForSeAction(requestId, note, {
+      notifyAllSes,
+    });
     setLoading(false);
     if (!result.ok) {
       setError(result.error);
@@ -215,6 +229,28 @@ export function RequestWorkflowPanel({
         </Button>
       </div>
 
+      {showChecklist && (
+        <div className="space-y-2 rounded-md border border-[var(--sophos-grey-2)] bg-[var(--sophos-grey-1)] p-3">
+          <p className="text-sm font-medium text-[var(--sophos-navy)]">
+            SE review checklist
+          </p>
+          <ul className="space-y-2">
+            {flagChecklist.map((item) => (
+              <li key={item.id} className="text-sm">
+                <span className={item.ok ? "text-emerald-800" : "text-amber-900"}>
+                  {item.ok ? "✓" : "○"} {item.label}
+                </span>
+                {item.detail && !item.ok && (
+                  <p className="text-muted-foreground ml-4 text-xs">
+                    {item.detail}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {notes.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-[var(--sophos-navy)]">
@@ -243,6 +279,32 @@ export function RequestWorkflowPanel({
           <Label htmlFor="workflowNote">
             {isSe ? "SE review note" : "Note (optional)"}
           </Label>
+          {isSe && (
+            <div className="space-y-1">
+              <Label htmlFor="needsChangesTemplate" className="text-xs">
+                Needs-changes template
+              </Label>
+              <select
+                id="needsChangesTemplate"
+                className="border-input flex h-8 w-full rounded-lg border bg-transparent px-2.5 text-sm"
+                defaultValue=""
+                onChange={(e) => {
+                  const tpl = NEEDS_CHANGES_TEMPLATES.find(
+                    (t) => t.id === e.target.value,
+                  );
+                  if (tpl) setNote(tpl.body);
+                  e.target.value = "";
+                }}
+              >
+                <option value="">Insert a template…</option>
+                {NEEDS_CHANGES_TEMPLATES.map((tpl) => (
+                  <option key={tpl.id} value={tpl.id}>
+                    {tpl.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <Input
             id="workflowNote"
             value={note}
@@ -251,6 +313,19 @@ export function RequestWorkflowPanel({
               isSe ? "SE review note…" : "Message for your Sales Engineer…"
             }
           />
+          {!isSe && (
+            <label className="flex items-center gap-2 text-xs text-[var(--sophos-navy)]">
+              <input
+                type="checkbox"
+                checked={notifyAllSes}
+                onChange={(e) => setNotifyAllSes(e.target.checked)}
+                className="size-3.5"
+              />
+              {hasAlignedSe
+                ? "Notify all SEs (default: aligned SE only)"
+                : "Notify all SEs"}
+            </label>
+          )}
           <div className="flex flex-wrap gap-2">
             {!isSe && (
               <Button

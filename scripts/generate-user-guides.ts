@@ -207,8 +207,8 @@ const accountManagerGuide: GuideSpec = {
         {
           type: "bullets",
           items: [
-            "AM: open the submitted request, optionally add a note, click Flag for SE \u2014 all SE/admin users get an in-app notification",
-            "SE: use the dashboard \u201cSE queue\u201d filter (review = flagged), open the request, add notes, then Mark reviewed or Needs changes",
+            "AM: open the submitted request, optionally add a note, click Flag for SE \u2014 the aligned SE is notified by default (optional Notify all SEs)",
+            "SE: use the dashboard \u201cSE queue\u201d filter (review = flagged), open the request, work the checklist (opportunity ID, wireless handoff, sizing-only SKUs), add notes or a needs-changes template, then Mark reviewed or Needs changes",
             "AM is notified in-app (and by email when configured) when SE sets reviewed or needs_changes",
             "AM CSV / quote export stays locked until reviewStatus is reviewed (SEs can always export)",
           ],
@@ -216,6 +216,19 @@ const accountManagerGuide: GuideSpec = {
         {
           type: "callout",
           text: "Always complete SE review before pasting a BOM into CPQ. Treat the tool as sizing guidance until subscription/support SKUs are fully orderable.",
+        },
+      ],
+    },
+    {
+      heading: "Reading the recommendation",
+      blocks: [
+        {
+          type: "bullets",
+          items: [
+            "Each site card shows binding constraint, why Recommended differs from Minimum, confidence (Green / Amber / Red), and sizing notes",
+            "Minimum / Recommended / Optimal use capacity headroom bands (\u226525% / \u226550% throughput, or spare switch ports) \u2014 not catalog index +1/+2",
+            "Catalog provenance (version, source, as-of) appears under Why this size",
+          ],
         },
       ],
     },
@@ -303,9 +316,14 @@ const customerGuide: GuideSpec = {
           type: "bullets",
           items: [
             "Sites \u2014 add each physical location",
-            "Configure \u2014 choose Firewall, Switches, and/or Wireless and answer the questions (including how many switch units if you need more than one)",
+            "Configure \u2014 progress shows Site X of Y · Firewall (etc.); branch sites use a shorter path with Advanced options for WAF/TLS/HA",
             "Review \u2014 confirm your answers, then submit",
+            "You will not see model recommendations in the wizard \u2014 your account team reviews sizing after submit",
           ],
+        },
+        {
+          type: "callout",
+          text: "Progress is saved on this device and on the server. You can close the tab and resume later with the same link on another device.",
         },
       ],
     },
@@ -327,7 +345,62 @@ const customerGuide: GuideSpec = {
       blocks: [
         {
           type: "paragraph",
-          text: "You will see a confirmation page. Your account team reviews the recommendation. If they ask you to correct answers, they will reopen the same link so you can submit again.",
+          text: "You will see a confirmation page. Your Account Manager or Sophos partner (depending on who sent the link) reviews the recommendation with a Sales Engineer as needed. If they ask you to correct answers, they will reopen the same link so you can submit again.",
+        },
+      ],
+    },
+  ],
+};
+
+const whenToUseGuide: GuideSpec = {
+  filename: "when-to-use-sizer.pdf",
+  title: "When to use the Sophos Hardware Sizer",
+  subtitle: "One-pager for Account Managers & Partners",
+  intro:
+    "Use this sheet before creating a sizing link. It clarifies what the tool is (and is not), and how to close the Flag \u2192 Review \u2192 Export loop.",
+  sections: [
+    {
+      heading: "Use the sizer when",
+      blocks: [
+        {
+          type: "bullets",
+          items: [
+            "You need multi-site Firewall and/or Switch intake without a spreadsheet questionnaire",
+            "You want a defensible Minimum / Recommended / Optimal size before CPQ",
+            "Wireless needs a structured handoff to the wireless desk (not an auto AP BOM)",
+            "An AM/partner and aligned SE will review before quote export",
+          ],
+        },
+      ],
+    },
+    {
+      heading: "Do not use it as",
+      blocks: [
+        {
+          type: "bullets",
+          items: [
+            "A live Salesforce sync or list-price calculator",
+            "A replacement for wireless desk design",
+            "A place to show customers model SKUs (thanks page never shows the BOM)",
+            "A source of orderable protection/WAF/support SKUs until Catalog admin maps them",
+          ],
+        },
+      ],
+    },
+    {
+      heading: "How to flag SE",
+      blocks: [
+        {
+          type: "bullets",
+          items: [
+            "Create the link with an aligned SE selected",
+            "After submit, Flag for SE (aligned SE notified by default)",
+            "SE works the checklist, marks Reviewed, then export unlocks for the AM",
+          ],
+        },
+        {
+          type: "callout",
+          text: "Pilot success: higher complete-submit %, faster flag\u2192reviewed latency, export-after-review rate. Admins: /dashboard/admin/pilot.",
         },
       ],
     },
@@ -340,6 +413,7 @@ function main() {
 
   generateGuide(accountManagerGuide, outDir);
   generateGuide(customerGuide, outDir);
+  generateGuide(whenToUseGuide, outDir);
 }
 
 main();

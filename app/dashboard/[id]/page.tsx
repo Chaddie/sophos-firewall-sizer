@@ -20,6 +20,7 @@ import {
   isAdmin,
 } from "@/lib/auth-utils";
 import { buildVanityUrl } from "@/lib/app-url";
+import { buildFlagChecklist } from "@/lib/sizing/flag-checklist";
 import { listSubmissionVersions } from "@/lib/sizing/submission-versions";
 import { SubmissionVersionHistory } from "@/components/dashboard/submission-version-history";
 
@@ -61,6 +62,13 @@ export default async function RequestDetailPage({
         senderEmail: session?.user?.email ?? null,
       }
     : null;
+  const flagChecklist = submission
+    ? buildFlagChecklist({
+        opportunityId: request.opportunityId,
+        answers: submission.answers,
+        recommendation: submission.recommendation,
+      })
+    : [];
 
   return (
     <div className="flex min-h-full flex-col">
@@ -154,6 +162,8 @@ export default async function RequestDetailPage({
           reviewedAt={request.reviewedAt ?? null}
           reviewedById={request.reviewedById ?? null}
           hasSubmission={Boolean(submission)}
+          flagChecklist={flagChecklist}
+          hasAlignedSe={Boolean(request.alignedSeId)}
         />
 
         {!submission ? (

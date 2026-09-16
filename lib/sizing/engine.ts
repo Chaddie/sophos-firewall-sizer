@@ -765,12 +765,26 @@ export function formatQuoteSummary(
     `Protection: ${legacy.protection === "xstream" ? "Xstream (incl. Zero-Day Protection)" : "Standard"}`,
     `Sizing basis: ${legacy.sizingBasis}`,
     `Constraints met: ${legacy.constraintsMet.join(", ")}`,
+  ];
+  if (legacy.bindingConstraint) {
+    lines.push(`Binding constraint: ${legacy.bindingConstraint}`);
+  }
+  if (legacy.whyRecommended) {
+    lines.push(`Why Recommended: ${legacy.whyRecommended}`);
+  }
+  if (legacy.confidence) {
+    lines.push(`Confidence: ${legacy.confidence}`);
+  }
+  if (legacy.catalogProvenance) {
+    lines.push(
+      `Catalog: ${legacy.catalogProvenance.version} (${legacy.catalogProvenance.source}${legacy.catalogProvenance.asOf ? `, as of ${legacy.catalogProvenance.asOf}` : ""})`,
+    );
+  }
+  lines.push(
     "",
     "Bill of Materials:",
-    ...legacy.bom.map(
-      (item) => `  ${item.quantity}× ${item.description}`,
-    ),
-  ];
+    ...legacy.bom.map((item) => `  ${item.quantity}× ${item.description}`),
+  );
 
   if (legacy.instanceRecommendation) {
     lines.push("", `Instance: ${legacy.instanceRecommendation}`);

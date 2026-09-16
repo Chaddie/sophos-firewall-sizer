@@ -766,33 +766,60 @@ export type SubmittedProductSummary = {
   wireless: boolean;
 };
 
-export async function getSubmittedProductSummary(
+export type ThanksPageContext = {
+  products: SubmittedProductSummary | null;
+  /** Role of the user who created the sizing link. */
+  creatorRole: string | null;
+};
+
+export async function getThanksPageContext(
   slug: string,
-): Promise<SubmittedProductSummary | null> {
+): Promise<ThanksPageContext> {
   if (isDemoMode()) {
     await ensureDemoSeed();
     const request = await demoStore.sizingRequests.findBySlug(slug);
-    if (!request) return null;
+    if (!request) return { products: null, creatorRole: null };
+    const creator = await demoStore.users.findById(request.createdById);
     const submission = await demoStore.submissions.findByRequestId(request.id);
-    if (!submission) return null;
-    return summarizeProducts(submission.answers);
+    return {
+      products: submission ? summarizeProducts(submission.answers) : null,
+      creatorRole: creator?.role ?? null,
+    };
   }
 
   const [request] = await getDb()
-    .select({ id: sizingRequests.id })
+    .select({
+      id: sizingRequests.id,
+      createdById: sizingRequests.createdById,
+    })
     .from(sizingRequests)
     .where(eq(sizingRequests.slug, slug))
     .limit(1);
-  if (!request) return null;
+  if (!request) return { products: null, creatorRole: null };
+
+  const [creator] = await getDb()
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, request.createdById))
+    .limit(1);
 
   const [submission] = await getDb()
     .select({ answers: submissions.answers })
     .from(submissions)
     .where(eq(submissions.requestId, request.id))
     .limit(1);
-  if (!submission) return null;
 
-  return summarizeProducts(submission.answers);
+  return {
+    products: submission ? summarizeProducts(submission.answers) : null,
+    creatorRole: creator?.role ?? null,
+  };
+}
+
+export async function getSubmittedProductSummary(
+  slug: string,
+): Promise<SubmittedProductSummary | null> {
+  const ctx = await getThanksPageContext(slug);
+  return ctx.products;
 }
 
 function summarizeProducts(

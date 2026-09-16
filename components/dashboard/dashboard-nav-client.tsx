@@ -57,6 +57,9 @@ export function DashboardNavClient({
               <AppHeaderNavLink href="/dashboard/admin/sizing-logic">
                 Sizing logic
               </AppHeaderNavLink>
+              <AppHeaderNavLink href="/dashboard/admin/pilot">
+                Pilot metrics
+              </AppHeaderNavLink>
             </>
           )}
           {showCatalogAdmin && (
@@ -64,6 +67,14 @@ export function DashboardNavClient({
               Catalog admin
             </AppHeaderNavLink>
           )}
+          <a
+            href="/guides/when-to-use-sizer.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-white/75 transition-colors hover:text-white"
+          >
+            When to use
+          </a>
           <a
             href="/guides/account-manager-guide.pdf"
             target="_blank"

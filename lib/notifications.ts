@@ -148,15 +148,27 @@ async function staffRecipientUserIds(): Promise<string[]> {
   return staff.map((u) => u.id);
 }
 
-/** Notify SE/admin staff that an AM flagged a request for review. */
+/** Notify SE/admin staff that an AM flagged a request for review.
+ * Default: aligned SE only (when set). Pass notifyAllSes to broaden. */
 export async function createPendingSeReviewNotifications(input: {
   label: string;
   requestId: string;
   note?: string | null;
   alignedSeId?: string | null;
+  /** When true, notify every SE/admin. Default false = aligned SE first. */
+  notifyAllSes?: boolean;
 }): Promise<void> {
-  const recipientIds = await staffRecipientUserIds();
-  if (input.alignedSeId) recipientIds.push(input.alignedSeId);
+  let recipientIds: string[] = [];
+  if (input.notifyAllSes) {
+    recipientIds = await staffRecipientUserIds();
+    if (input.alignedSeId) recipientIds.push(input.alignedSeId);
+  } else if (input.alignedSeId) {
+    recipientIds = [input.alignedSeId];
+  } else {
+    // No aligned SE — fall back to all SE/admin so the flag is not silent.
+    recipientIds = await staffRecipientUserIds();
+  }
+
   const note = input.note?.trim();
   await insertInAppNotifications({
     recipientIds: [...new Set(recipientIds)],

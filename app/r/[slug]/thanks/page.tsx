@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  getSubmittedProductSummary,
+  getThanksPageContext,
   type SubmittedProductSummary,
 } from "@/lib/actions";
 
@@ -38,8 +38,12 @@ export default async function ThanksPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const productSummary = await getSubmittedProductSummary(slug);
-  const recommendedProducts = describeRecommendedProducts(productSummary);
+  const { products, creatorRole } = await getThanksPageContext(slug);
+  const recommendedProducts = describeRecommendedProducts(products);
+  const followUpBy =
+    creatorRole === "partner"
+      ? "Your Sophos partner (and Sales Engineer as needed)"
+      : "Your Sophos Account Manager";
 
   return (
     <>
@@ -59,9 +63,9 @@ export default async function ThanksPage({
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-[var(--sophos-gray)]">
-              Your Sophos Account Manager will review your requirements and
-              follow up with recommended {recommendedProducts}. You do not
-              need to take any further action — you can close this window.
+              {followUpBy} will review your requirements and follow up with
+              recommended {recommendedProducts}. You do not need to take any
+              further action — you can close this window.
             </p>
             <Link href="/">
               <Button variant="outline">Done</Button>

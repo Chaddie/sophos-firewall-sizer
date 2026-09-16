@@ -128,18 +128,21 @@ Example vanity URL: `https://sizer.yourcompany.com/r/acme-corp-jul2026`
 
 ## Workflow (AM ↔ SE)
 
-1. Create link → customer submits → AM (and SEs) notified
-2. AM **Flag for SE** → SE queue filter on dashboard
-3. SE **Mark reviewed** or **Needs changes** → AM notified
+1. Create link (AM/partner picks an **aligned SE**) → customer submits → AM (and SEs) notified
+2. AM **Flag for SE** → notifies the **aligned SE by default** (optional “Notify all SEs”); SE queue filter on dashboard
+3. SE uses the flagged checklist + optional needs-changes templates → **Mark reviewed** or **Needs changes** → AM notified
 4. AM exports CSV / quote only after **reviewed** (SE can always export)
 5. Mistakes: **Allow customer resubmit** or **SE correction** (version history kept)
 
+Pilot tip: use `/dashboard/admin/pilot` for 2-week funnel metrics, and `public/guides/when-to-use-sizer.pdf` for AM enablement.
+
 ## Sizing logic
 
-- Firewall engine: `lib/sizing/engine.ts`
-- Switch engine: `lib/sizing/switch-engine.ts`
+- Firewall engine: `lib/sizing/engine.ts` — Min/Rec/Opt use **headroom bands** (≥25% / ≥50%), sorted by the same TLS-aware throughput metric used for comparison
+- Switch engine: `lib/sizing/switch-engine.ts` — spare-port bands (≥4 / ≥12)
 - Wireless handoff: `lib/sizing/wireless-handoff.ts`
 - Multi-site orchestration: `lib/sizing/submission-engine.ts`
+- Human-readable algorithm: `/dashboard/admin/sizing-logic`
 
 Model specs live in `firewall_models` / `switch_models` (seeded from bundled JSON). **Admins** edit specs and SKUs at `/dashboard/admin/catalog`. Changes apply to new submissions immediately; use **Recalculate open BOMs** to refresh active submitted deals. If the database is unreachable or empty, the engine falls back to bundled JSON.
 
@@ -155,6 +158,7 @@ Model specs live in `firewall_models` / `switch_models` (seeded from bundled JSO
 | `npm run db:seed` | Create/update seed users |
 | `npm run db:seed-catalog` | Seed/reset catalog tables from bundled JSON |
 | `npm run docs:guides` | Regenerate PDF user guides in `public/guides/` |
+| `npm test` | Run golden sizing engine tests |
 
 ## Project structure
 

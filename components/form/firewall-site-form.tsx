@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { RadioGroup } from "@/components/ui/radio-group";
 import {
   Select,
@@ -63,6 +64,9 @@ export function FirewallSiteForm({
   errors = {},
   idPrefix = "fw",
 }: FirewallSiteFormProps) {
+  const isBranch = value.siteRole === "branch";
+  const [showAdvanced, setShowAdvanced] = useState(!isBranch);
+
   function set<K extends keyof FirewallFormState>(
     key: K,
     val: FirewallFormState[K],
@@ -103,7 +107,23 @@ export function FirewallSiteForm({
         />
         <RadioGroup
           value={value.siteRole}
-          onValueChange={(v) => set("siteRole", v as SiteRole)}
+          onValueChange={(v) => {
+            const siteRole = v as SiteRole;
+            if (siteRole === "branch") {
+              onChange({
+                ...value,
+                siteRole,
+                wafLicense: "not_required",
+                tlsInspectionScope: "selective",
+                haRequired: false,
+                internalTrafficEnabled: false,
+                internalTrafficMbps: "",
+              });
+              setShowAdvanced(false);
+            } else {
+              set("siteRole", siteRole);
+            }
+          }}
           className="space-y-3"
         >
           {(Object.entries(SITE_ROLE_LABELS) as [SiteRole, string][]).map(
@@ -118,6 +138,12 @@ export function FirewallSiteForm({
             ),
           )}
         </RadioGroup>
+        {isBranch && (
+          <p className="text-muted-foreground text-xs">
+            Branch sites use a shorter path — WAF, TLS detail, HA, SFP+, and
+            internal traffic are under Advanced options with sensible defaults.
+          </p>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -148,15 +174,17 @@ export function FirewallSiteForm({
           onChange={(v) => set("expectedPeakThroughputMbps", v)}
           errors={errors.expectedPeakThroughputMbps}
         />
-        <FormField
-          id={`${idPrefix}-wanGrowth3yrPercent`}
-          label="3-year growth (%)"
-          tooltip={WAN_FIELD_TOOLTIPS.wanGrowth3yrPercent}
-          type="number"
-          value={value.wanGrowth3yrPercent}
-          onChange={(v) => set("wanGrowth3yrPercent", v)}
-          errors={errors.wanGrowth3yrPercent}
-        />
+        {(!isBranch || showAdvanced) && (
+          <FormField
+            id={`${idPrefix}-wanGrowth3yrPercent`}
+            label="3-year growth (%)"
+            tooltip={WAN_FIELD_TOOLTIPS.wanGrowth3yrPercent}
+            type="number"
+            value={value.wanGrowth3yrPercent}
+            onChange={(v) => set("wanGrowth3yrPercent", v)}
+            errors={errors.wanGrowth3yrPercent}
+          />
+        )}
       </div>
 
       <div className="space-y-3">
@@ -197,55 +225,62 @@ export function FirewallSiteForm({
         </div>
       </div>
 
-      <div className="space-y-3">
-        <LabelWithTooltip
-          label="Web Server Protection (WAF) license"
-          tooltip="WAF is not included in Standard or Xstream bundles."
-        />
-        <Select
-          value={value.wafLicense}
-          onValueChange={(v) => set("wafLicense", v as WafLicense)}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {(Object.entries(WAF_LICENSE_LABELS) as [WafLicense, string][]).map(
-              ([k, labelText]) => (
-                <SelectItem key={k} value={k}>
-                  {labelText}
-                </SelectItem>
-              ),
-            )}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-3">
-        <LabelWithTooltip
-          label="TLS / HTTPS inspection scope"
-          tooltip="How much HTTPS traffic is decrypted and inspected."
-        />
-        <RadioGroup
-          value={value.tlsInspectionScope}
-          onValueChange={(v) =>
-            set("tlsInspectionScope", v as TlsInspectionScope)
-          }
-          className="space-y-3"
-        >
-          {(
-            Object.entries(TLS_INSPECTION_LABELS) as [TlsInspectionScope, string][]
-          ).map(([scope, labelText]) => (
-            <RadioOptionRow
-              key={scope}
-              value={scope}
-              id={`${idPrefix}-tls-${scope}`}
-              label={labelText}
-              tooltip={TLS_INSPECTION_TOOLTIPS[scope]}
+      {(!isBranch || showAdvanced) && (
+        <>
+          <div className="space-y-3">
+            <LabelWithTooltip
+              label="Web Server Protection (WAF) license"
+              tooltip="WAF is not included in Standard or Xstream bundles."
             />
-          ))}
-        </RadioGroup>
-      </div>
+            <Select
+              value={value.wafLicense}
+              onValueChange={(v) => set("wafLicense", v as WafLicense)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(
+                  Object.entries(WAF_LICENSE_LABELS) as [WafLicense, string][]
+                ).map(([k, labelText]) => (
+                  <SelectItem key={k} value={k}>
+                    {labelText}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-3">
+            <LabelWithTooltip
+              label="TLS / HTTPS inspection scope"
+              tooltip="How much HTTPS traffic is decrypted and inspected."
+            />
+            <RadioGroup
+              value={value.tlsInspectionScope}
+              onValueChange={(v) =>
+                set("tlsInspectionScope", v as TlsInspectionScope)
+              }
+              className="space-y-3"
+            >
+              {(
+                Object.entries(TLS_INSPECTION_LABELS) as [
+                  TlsInspectionScope,
+                  string,
+                ][]
+              ).map(([scope, labelText]) => (
+                <RadioOptionRow
+                  key={scope}
+                  value={scope}
+                  id={`${idPrefix}-tls-${scope}`}
+                  label={labelText}
+                  tooltip={TLS_INSPECTION_TOOLTIPS[scope]}
+                />
+              ))}
+            </RadioGroup>
+          </div>
+        </>
+      )}
 
       <div className="space-y-3">
         <LabelWithTooltip label="VPN type" tooltip={VPN_TYPE_TOOLTIPS.none} />
@@ -344,102 +379,119 @@ export function FirewallSiteForm({
           errors={errors.authUserCount}
         />
       )}
-      <YesNoField
-        label="Will internal traffic be routed through the firewall?"
-        tooltip={USER_FIELD_TOOLTIPS.internalTrafficEnabled}
-        value={value.internalTrafficEnabled}
-        onChange={(v) => set("internalTrafficEnabled", v)}
-      />
-      {value.internalTrafficEnabled && (
-        <FormField
-          id={`${idPrefix}-internalTrafficMbps`}
-          label="Estimated internal traffic (Mbps)"
-          tooltip={USER_FIELD_TOOLTIPS.internalTrafficMbps}
-          type="number"
-          value={value.internalTrafficMbps}
-          onChange={(v) => set("internalTrafficMbps", v)}
-          errors={errors.internalTrafficMbps}
-        />
-      )}
-      <YesNoField
-        label="High availability required?"
-        tooltip={HA_TOOLTIPS.haRequired}
-        value={value.haRequired}
-        onChange={(v) => set("haRequired", v)}
-      />
 
-      {value.environment === "physical" && (
+      {(!isBranch || showAdvanced) && (
         <>
           <YesNoField
-            label="Do you require SFP+ ports?"
-            tooltip={ACCESSORY_FIELD_TOOLTIPS.requiresSfpPlus}
-            value={value.requiresSfpPlus}
-            onChange={(v) =>
-              onChange({
-                ...value,
-                requiresSfpPlus: v,
-                includeSophosTransceivers: v
-                  ? value.includeSophosTransceivers
-                  : false,
-              })
-            }
+            label="Will internal traffic be routed through the firewall?"
+            tooltip={USER_FIELD_TOOLTIPS.internalTrafficEnabled}
+            value={value.internalTrafficEnabled}
+            onChange={(v) => set("internalTrafficEnabled", v)}
           />
-          {value.requiresSfpPlus && (
-            <>
-              <YesNoField
-                label="Include Sophos transceivers on the quote?"
-                tooltip={ACCESSORY_FIELD_TOOLTIPS.includeSophosTransceivers}
-                value={value.includeSophosTransceivers}
-                onChange={(v) => set("includeSophosTransceivers", v)}
-              />
-              {value.includeSophosTransceivers && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <LabelWithTooltip
-                      htmlFor={`${idPrefix}-sfpTransceiverType`}
-                      label="SR or LR transceiver *"
-                      tooltip={ACCESSORY_FIELD_TOOLTIPS.sfpTransceiverType}
-                    />
-                    <select
-                      id={`${idPrefix}-sfpTransceiverType`}
-                      className="border-input mt-1.5 flex h-8 w-full rounded-lg border bg-transparent px-2.5 text-sm"
-                      value={value.sfpTransceiverType}
-                      onChange={(e) =>
-                        set(
-                          "sfpTransceiverType",
-                          e.target.value as SfpTransceiverType,
-                        )
-                      }
-                    >
-                      <option value="sr">SR (short-range)</option>
-                      <option value="lr">LR (long-range)</option>
-                    </select>
-                    {errors.sfpTransceiverType && (
-                      <p className="text-destructive mt-1 text-xs">
-                        {errors.sfpTransceiverType.join(", ")}
-                      </p>
-                    )}
-                  </div>
-                  <FormField
-                    id={`${idPrefix}-sfpTransceiverCount`}
-                    label="How many transceivers? *"
-                    tooltip={ACCESSORY_FIELD_TOOLTIPS.sfpTransceiverCount}
-                    type="number"
-                    value={value.sfpTransceiverCount}
-                    onChange={(v) => set("sfpTransceiverCount", v)}
-                    errors={errors.sfpTransceiverCount}
-                  />
-                </div>
-              )}
-            </>
+          {value.internalTrafficEnabled && (
+            <FormField
+              id={`${idPrefix}-internalTrafficMbps`}
+              label="Estimated internal traffic (Mbps)"
+              tooltip={USER_FIELD_TOOLTIPS.internalTrafficMbps}
+              type="number"
+              value={value.internalTrafficMbps}
+              onChange={(v) => set("internalTrafficMbps", v)}
+              errors={errors.internalTrafficMbps}
+            />
           )}
           <YesNoField
-            label="Do you require an extra PSU for redundancy?"
-            tooltip={ACCESSORY_FIELD_TOOLTIPS.redundantPsuRequired}
-            value={value.redundantPsuRequired}
-            onChange={(v) => set("redundantPsuRequired", v)}
+            label="High availability required?"
+            tooltip={HA_TOOLTIPS.haRequired}
+            value={value.haRequired}
+            onChange={(v) => set("haRequired", v)}
           />
+
+          {value.environment === "physical" && (
+            <>
+              <YesNoField
+                label="Do you require SFP+ ports?"
+                tooltip={ACCESSORY_FIELD_TOOLTIPS.requiresSfpPlus}
+                value={value.requiresSfpPlus}
+                onChange={(v) =>
+                  onChange({
+                    ...value,
+                    requiresSfpPlus: v,
+                    includeSophosTransceivers: v
+                      ? value.includeSophosTransceivers
+                      : false,
+                  })
+                }
+              />
+              {value.requiresSfpPlus && (
+                <>
+                  <YesNoField
+                    label="Include Sophos transceivers on the quote?"
+                    tooltip={ACCESSORY_FIELD_TOOLTIPS.includeSophosTransceivers}
+                    value={value.includeSophosTransceivers}
+                    onChange={(v) => set("includeSophosTransceivers", v)}
+                  />
+                  {value.includeSophosTransceivers && (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <LabelWithTooltip
+                          htmlFor={`${idPrefix}-sfpTransceiverType`}
+                          label="SR or LR transceiver *"
+                          tooltip={ACCESSORY_FIELD_TOOLTIPS.sfpTransceiverType}
+                        />
+                        <select
+                          id={`${idPrefix}-sfpTransceiverType`}
+                          className="border-input mt-1.5 flex h-8 w-full rounded-lg border bg-transparent px-2.5 text-sm"
+                          value={value.sfpTransceiverType}
+                          onChange={(e) =>
+                            set(
+                              "sfpTransceiverType",
+                              e.target.value as SfpTransceiverType,
+                            )
+                          }
+                        >
+                          <option value="sr">SR (short-range)</option>
+                          <option value="lr">LR (long-range)</option>
+                        </select>
+                        {errors.sfpTransceiverType && (
+                          <p className="text-destructive mt-1 text-xs">
+                            {errors.sfpTransceiverType.join(", ")}
+                          </p>
+                        )}
+                      </div>
+                      <FormField
+                        id={`${idPrefix}-sfpTransceiverCount`}
+                        label="How many transceivers? *"
+                        tooltip={ACCESSORY_FIELD_TOOLTIPS.sfpTransceiverCount}
+                        type="number"
+                        value={value.sfpTransceiverCount}
+                        onChange={(v) => set("sfpTransceiverCount", v)}
+                        errors={errors.sfpTransceiverCount}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+              <YesNoField
+                label="Do you require an extra PSU for redundancy?"
+                tooltip={ACCESSORY_FIELD_TOOLTIPS.redundantPsuRequired}
+                value={value.redundantPsuRequired}
+                onChange={(v) => set("redundantPsuRequired", v)}
+              />
+            </>
+          )}
         </>
+      )}
+
+      {isBranch && (
+        <button
+          type="button"
+          className="text-sm font-medium text-[var(--sophos-blue)] underline underline-offset-2"
+          onClick={() => setShowAdvanced((v) => !v)}
+        >
+          {showAdvanced
+            ? "Hide advanced options"
+            : "Show advanced options (WAF, TLS, HA, SFP+, internal traffic)"}
+        </button>
       )}
     </div>
   );

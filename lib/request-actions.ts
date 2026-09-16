@@ -127,6 +127,7 @@ async function appendReviewNoteToRequest(
 export async function flagRequestForSeAction(
   requestId: string,
   note?: string,
+  options?: { notifyAllSes?: boolean },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const loaded = await loadOwnedOrSeRequest(requestId);
   if (!loaded.ok) return { ok: false, error: loaded.error };
@@ -160,6 +161,7 @@ export async function flagRequestForSeAction(
     requestId,
     note: flaggedNote,
     alignedSeId: loaded.request.alignedSeId ?? null,
+    notifyAllSes: options?.notifyAllSes ?? false,
   });
 
   revalidatePath(`/dashboard/${requestId}`);

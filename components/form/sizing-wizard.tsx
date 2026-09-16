@@ -346,12 +346,36 @@ export function SizingWizard({
     return () => window.clearTimeout(handle);
   }, [slug, step, configureSiteIndex, sites, additionalNotes, isCorrection]);
 
-  const progress = ((step + 1) / STEP_LABELS.length) * 100;
   const safeConfigureIndex = Math.min(
     configureSiteIndex,
     Math.max(sites.length - 1, 0),
   );
   const activeSite = sites[safeConfigureIndex] ?? sites[0];
+
+  const configureProductLabel = (() => {
+    if (!activeSite) return null;
+    const parts: string[] = [];
+    if (activeSite.enableFirewall) parts.push("Firewall");
+    if (activeSite.enableSwitches) parts.push("Switch");
+    if (activeSite.enableWireless) parts.push("Wireless");
+    return parts.length > 0 ? parts.join(" · ") : null;
+  })();
+
+  const progress = (() => {
+    if (step === 0) return 12;
+    if (step === 2) return 100;
+    const siteCount = Math.max(sites.length, 1);
+    return 12 + ((safeConfigureIndex + 1) / siteCount) * 76;
+  })();
+
+  const progressLabel = (() => {
+    if (step === 0) return `Step 1 of ${STEP_LABELS.length}: Sites`;
+    if (step === 2) return `Step 3 of ${STEP_LABELS.length}: Review`;
+    const sitePart = `Site ${safeConfigureIndex + 1} of ${sites.length}`;
+    return configureProductLabel
+      ? `${sitePart} · ${configureProductLabel}`
+      : `${sitePart} · Configure`;
+  })();
 
   function updateSite(index: number, site: SiteFormState) {
     setSites((prev) => prev.map((s, i) => (i === index ? site : s)));
@@ -692,23 +716,30 @@ export function SizingWizard({
 
           <div className="space-y-2">
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>
-                Step {step + 1} of {STEP_LABELS.length}: {STEP_LABELS[step]}
-                {step === 1 && sites.length > 1
-                  ? ` — Site ${safeConfigureIndex + 1} of ${sites.length}`
-                  : ""}
-              </span>
+              <span>{progressLabel}</span>
               <span>{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} />
+            {step < 2 && !isCorrection && (
+              <Alert className="border-[var(--sophos-grey-2)] bg-white/80">
+                <AlertDescription className="text-xs text-[var(--sophos-navy)]">
+                  Your account team will review recommendations after you
+                  submit — you will not see model names or a bill of materials
+                  here.
+                </AlertDescription>
+              </Alert>
+            )}
             {(draftRestored || draftSavedAt) && !isCorrection && (
               <p className="text-muted-foreground text-center text-xs">
-                {draftRestored ? "Draft restored from this browser. " : ""}
-                Progress is saved automatically on this device and on the server
+                {draftRestored
+                  ? "Draft restored — you can continue where you left off. "
+                  : ""}
+                Progress saves automatically on this device and on the server
                 {draftSavedAt
                   ? ` (last saved ${new Date(draftSavedAt).toLocaleString()})`
                   : ""}
-                .
+                . You can close this tab and resume later on this or another
+                device using the same link.
               </p>
             )}
           </div>
