@@ -65,6 +65,7 @@ export function siteInputToSubmission(
 export function inputToSubmissionAnswers(
   input: SizingSubmissionInput,
 ): SizingSubmissionAnswers {
+  const notes = input.additionalNotes?.trim();
   return {
     schemaVersion: 2,
     contact: input.contact
@@ -73,6 +74,7 @@ export function inputToSubmissionAnswers(
           customerEmail: input.contact.customerEmail || undefined,
         }
       : undefined,
+    ...(notes ? { additionalNotes: notes } : {}),
     sites: input.sites.map(siteInputToSubmission),
   };
 }

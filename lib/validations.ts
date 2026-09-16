@@ -253,6 +253,11 @@ export const sizingSubmissionSchema = z.object({
       customerEmail: z.string().email().optional().or(z.literal("")),
     })
     .optional(),
+  additionalNotes: z
+    .string()
+    .max(5000, "Additional notes must be 5000 characters or fewer")
+    .optional()
+    .or(z.literal("")),
   sites: z.array(siteSubmissionSchema).min(1, "Add at least one site"),
 });
 

@@ -237,7 +237,12 @@ export function formatAnswersForDisplay(answers: StoredAnswers) {
       });
     }
 
-    return { schemaVersion: 2 as const, contactRows, sites };
+    return {
+      schemaVersion: 2 as const,
+      contactRows,
+      additionalNotes: answers.additionalNotes?.trim() || undefined,
+      sites,
+    };
   }
 
   const legacy = answers as SizingAnswers;

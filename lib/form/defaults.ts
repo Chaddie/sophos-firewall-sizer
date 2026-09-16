@@ -257,9 +257,14 @@ export function wirelessFormToPayload(w: WirelessFormState) {
   };
 }
 
-export function sitesToSubmissionPayload(sites: SiteFormState[]) {
+export function sitesToSubmissionPayload(
+  sites: SiteFormState[],
+  options?: { additionalNotes?: string },
+) {
+  const notes = options?.additionalNotes?.trim();
   return {
     schemaVersion: 2 as const,
+    ...(notes ? { additionalNotes: notes } : {}),
     sites: sites.map((site) => ({
       siteName: site.siteName,
       enableFirewall: site.enableFirewall,

@@ -56,6 +56,7 @@ export default async function SeCorrectionPage({
         slug={request.slug}
         label={request.label}
         initialSites={initialSites}
+        initialAdditionalNotes={submission.answers.additionalNotes}
         correctionRequestId={request.id}
       />
     </div>

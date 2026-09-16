@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { submitSizingForm } from "@/lib/actions";
@@ -55,6 +56,8 @@ interface SizingWizardProps {
   label?: string | null;
   /** Prefill sites (SE correction / restored server draft). */
   initialSites?: SiteFormState[];
+  /** Prefill customer free-form notes (SE correction). */
+  initialAdditionalNotes?: string;
   /**
    * When set, submit goes through SE correction instead of public submit.
    */
@@ -66,6 +69,7 @@ interface DraftPayload {
   step: number;
   configureSiteIndex: number;
   sites: SiteFormState[];
+  additionalNotes?: string;
   updatedAt: string;
 }
 
@@ -238,6 +242,7 @@ export function SizingWizard({
   slug,
   label,
   initialSites,
+  initialAdditionalNotes,
   correctionRequestId,
 }: SizingWizardProps) {
   const router = useRouter();
@@ -247,6 +252,9 @@ export function SizingWizard({
     initialSites && initialSites.length > 0
       ? initialSites.map(normalizeSiteFormState)
       : [defaultSiteState("")],
+  );
+  const [additionalNotes, setAdditionalNotes] = useState(
+    initialAdditionalNotes ?? "",
   );
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -298,6 +306,7 @@ export function SizingWizard({
 
       if (chosen && chosen.sites.length > 0) {
         setSites(chosen.sites.map(normalizeSiteFormState));
+        setAdditionalNotes(chosen.additionalNotes ?? "");
         setStep(Math.min(Math.max(chosen.step ?? 0, 0), STEP_LABELS.length - 1));
         setConfigureSiteIndex(
           Math.min(
@@ -325,7 +334,7 @@ export function SizingWizard({
   useEffect(() => {
     if (!hydrated.current || isCorrection) return;
     const handle = window.setTimeout(() => {
-      const payload = { step, configureSiteIndex, sites };
+      const payload = { step, configureSiteIndex, sites, additionalNotes };
       saveDraft(slug, payload);
       setDraftSavedAt(new Date().toISOString());
       void saveSizingDraftAction(slug, {
@@ -335,7 +344,7 @@ export function SizingWizard({
       });
     }, 600);
     return () => window.clearTimeout(handle);
-  }, [slug, step, configureSiteIndex, sites, isCorrection]);
+  }, [slug, step, configureSiteIndex, sites, additionalNotes, isCorrection]);
 
   const progress = ((step + 1) / STEP_LABELS.length) * 100;
   const safeConfigureIndex = Math.min(
@@ -550,7 +559,7 @@ export function SizingWizard({
     setErrors({});
 
     try {
-      const payload = sitesToSubmissionPayload(sites);
+      const payload = sitesToSubmissionPayload(sites, { additionalNotes });
       const parsed = sizingSubmissionSchema.safeParse(payload);
       if (!parsed.success) {
         const flatErrors: Record<string, string[]> = {};
@@ -1031,6 +1040,31 @@ export function SizingWizard({
                       </div>
                     );
                   })}
+
+                  <div className="space-y-2 rounded-lg border border-[var(--sophos-grey-2)] p-4">
+                    <LabelWithTooltip
+                      htmlFor="additionalNotes"
+                      label="Additional notes (optional)"
+                      tooltip="Anything else you want your Sophos account team to know — constraints, timelines, special requirements, or context not covered above."
+                    />
+                    <Textarea
+                      id="additionalNotes"
+                      value={additionalNotes}
+                      onChange={(e) => setAdditionalNotes(e.target.value)}
+                      placeholder="Share any extra context for your account team…"
+                      rows={4}
+                      maxLength={5000}
+                      aria-invalid={Boolean(errors.additionalNotes)}
+                    />
+                    {errors.additionalNotes?.[0] && (
+                      <p className="text-destructive text-xs">
+                        {errors.additionalNotes[0]}
+                      </p>
+                    )}
+                    <p className="text-muted-foreground text-xs">
+                      {additionalNotes.length}/5000
+                    </p>
+                  </div>
                 </div>
               )}
 

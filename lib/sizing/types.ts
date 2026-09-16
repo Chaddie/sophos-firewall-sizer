@@ -115,6 +115,8 @@ export interface SiteSubmission {
 export interface SizingSubmissionAnswers {
   schemaVersion: 2;
   contact?: { customerName?: string; customerEmail?: string };
+  /** Optional free-form notes from the customer for the account team. */
+  additionalNotes?: string;
   sites: SiteSubmission[];
 }
 

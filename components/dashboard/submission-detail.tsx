@@ -252,6 +252,17 @@ export function SubmissionDetail({
                 </dl>
               )}
             {formattedAnswers.schemaVersion === 2 &&
+              formattedAnswers.additionalNotes && (
+                <div className="rounded-lg border border-[var(--sophos-grey-2)] bg-[var(--sophos-grey-1)] p-4">
+                  <p className="text-muted-foreground mb-2 text-xs uppercase tracking-wide">
+                    Additional notes from customer
+                  </p>
+                  <p className="whitespace-pre-wrap text-sm text-[var(--sophos-navy)]">
+                    {formattedAnswers.additionalNotes}
+                  </p>
+                </div>
+              )}
+            {formattedAnswers.schemaVersion === 2 &&
               formattedAnswers.sites.map((site) => (
                 <div key={site.siteName} className="space-y-3">
                   <h4 className="font-medium">{site.siteName}</h4>
