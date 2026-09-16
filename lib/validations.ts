@@ -267,11 +267,11 @@ export const createRequestSchema = z.object({
   label: z.string().min(2, "Company / customer name is required"),
   slug: z
     .string()
-    .min(3, "Slug must be at least 3 characters")
+    .min(3, "Link name must be at least 3 characters")
     .max(64)
     .regex(
       /^[a-z0-9-]+$/,
-      "Slug may only contain lowercase letters, numbers, and hyphens",
+      "Link name may only contain lowercase letters, numbers, and hyphens",
     ),
   contactName: z.string().optional(),
   contactEmail: z.string().email("A valid contact email is required"),

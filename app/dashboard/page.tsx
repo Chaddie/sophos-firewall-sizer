@@ -150,7 +150,7 @@ export default async function DashboardPage({
                     ? `No sizing requests match “${creatorQuery}”.`
                     : showCreator && scope === "all"
                       ? "No sizing links have been created yet."
-                      : "Create your first vanity URL to send to a customer."}
+                      : "Create your first customer link to send for sizing."}
               </CardDescription>
             </CardHeader>
             {archive !== "archived" && (

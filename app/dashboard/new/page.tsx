@@ -34,7 +34,7 @@ export default async function NewRequestPage() {
               Create sizing link
             </CardTitle>
             <CardDescription>
-              Generate a vanity URL to send to your customer. Select the aligned
+              Create a customer link to send for sizing. Select the aligned
               Sales Engineer so they are notified when the link is created and
               when the customer submits.
             </CardDescription>

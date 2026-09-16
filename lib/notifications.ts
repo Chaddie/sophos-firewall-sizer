@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { demoStore, isDemoMode } from "@/lib/db/demo-store";
 import { notifications, users } from "@/lib/db/schema";
 import { sendEmail } from "@/lib/email/send";
+import { sendWebPushToUsers } from "@/lib/web-push";
 
 export function submissionNotifyEmail(input: {
   label: string;
@@ -83,21 +84,33 @@ async function insertInAppNotifications(input: {
         requestId: input.requestId,
       });
     }
-    return;
+  } else {
+    await getDb()
+      .insert(notifications)
+      .values(
+        input.recipientIds.map((userId) => ({
+          userId,
+          type: input.type,
+          title: input.title,
+          body: input.body,
+          href: input.href,
+          requestId: input.requestId,
+        })),
+      );
   }
 
-  await getDb()
-    .insert(notifications)
-    .values(
-      input.recipientIds.map((userId) => ({
-        userId,
-        type: input.type,
-        title: input.title,
-        body: input.body,
-        href: input.href,
-        requestId: input.requestId,
-      })),
-    );
+  // Best-effort Chrome / Chromium push (requires VAPID + subscribed browsers).
+  try {
+    await sendWebPushToUsers({
+      userIds: input.recipientIds,
+      title: input.title,
+      body: input.body,
+      href: input.href,
+      tag: input.requestId,
+    });
+  } catch {
+    // Do not fail the primary notification write if push delivery fails.
+  }
 }
 
 /** Persist in-app notifications for the request creator and SE/admin staff. */

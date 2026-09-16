@@ -49,9 +49,9 @@ export function CreateRequestForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="slug">Vanity URL slug</Label>
+        <Label htmlFor="slug">Link name</Label>
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground text-sm">/r/</span>
+          <span className="text-muted-foreground shrink-0 text-sm">/r/</span>
           <Input
             id="slug"
             name="slug"
@@ -64,6 +64,11 @@ export function CreateRequestForm({
             placeholder="acme-corp-jul2026"
           />
         </div>
+        <p className="text-muted-foreground text-xs">
+          Short name for the link you send your customer. Use lowercase letters,
+          numbers, and hyphens only — it fills in automatically from the
+          customer name, but you can edit it.
+        </p>
         {state?.error?.slug && (
           <p className="text-destructive text-xs">{state.error.slug.join(", ")}</p>
         )}

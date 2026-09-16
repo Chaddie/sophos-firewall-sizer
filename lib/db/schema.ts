@@ -279,8 +279,27 @@ export const notifications = pgTable("notifications", {
     .notNull(),
 });
 
+/** Web Push subscriptions (Chrome / Chromium desktop notifications). */
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
 export type SizingRequest = typeof sizingRequests.$inferSelect;
 export type Submission = typeof submissions.$inferSelect;
 export type SubmissionVersion = typeof submissionVersions.$inferSelect;

@@ -132,6 +132,17 @@ export interface DemoNotification {
   createdAt: Date;
 }
 
+export interface DemoPushSubscription {
+  id: string;
+  userId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  userAgent: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 const users: DemoUser[] = [];
 const sizingRequests: DemoSizingRequest[] = [];
 const submissions: DemoSubmission[] = [];
@@ -144,6 +155,7 @@ const passkeyRows: DemoPasskey[] = [];
 const webauthnChallengeRows: DemoWebauthnChallenge[] = [];
 const passkeyLoginTicketRows: DemoPasskeyLoginTicket[] = [];
 const notificationRows: DemoNotification[] = [];
+const pushSubscriptionRows: DemoPushSubscription[] = [];
 
 export const demoStore = {
   users: {
@@ -566,6 +578,52 @@ export const demoStore = {
       if (idx < 0) return false;
       sizingDraftRows.splice(idx, 1);
       return true;
+    },
+  },
+  pushSubscriptions: {
+    async upsert(data: {
+      userId: string;
+      endpoint: string;
+      p256dh: string;
+      auth: string;
+      userAgent?: string | null;
+    }) {
+      const existing = pushSubscriptionRows.find(
+        (r) => r.endpoint === data.endpoint,
+      );
+      const now = new Date();
+      if (existing) {
+        existing.userId = data.userId;
+        existing.p256dh = data.p256dh;
+        existing.auth = data.auth;
+        existing.userAgent = data.userAgent ?? null;
+        existing.updatedAt = now;
+        return existing;
+      }
+      const row: DemoPushSubscription = {
+        id: randomUUID(),
+        userId: data.userId,
+        endpoint: data.endpoint,
+        p256dh: data.p256dh,
+        auth: data.auth,
+        userAgent: data.userAgent ?? null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      pushSubscriptionRows.push(row);
+      return row;
+    },
+    async delete(userId: string, endpoint: string) {
+      const idx = pushSubscriptionRows.findIndex(
+        (r) => r.userId === userId && r.endpoint === endpoint,
+      );
+      if (idx < 0) return false;
+      pushSubscriptionRows.splice(idx, 1);
+      return true;
+    },
+    async listByUsers(userIds: string[]) {
+      const set = new Set(userIds);
+      return pushSubscriptionRows.filter((r) => set.has(r.userId));
     },
   },
 };

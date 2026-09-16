@@ -217,7 +217,7 @@ export function SeRequestScopeFilter({
         placeholder="Search creator, customer, contact…"
         aria-label="Search by creator, customer label, contact, or slug"
         className={cn(
-          "h-8 w-64 border-[var(--sophos-grey-2)] bg-white shadow-sm",
+          "h-8 w-full min-w-[18rem] max-w-md sm:w-80 border-[var(--sophos-grey-2)] bg-white shadow-sm",
           pending && "opacity-70",
         )}
       />

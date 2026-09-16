@@ -11,7 +11,7 @@ import {
 } from "@/lib/notification-actions";
 import type { InAppNotification } from "@/lib/notifications";
 import {
-  ensureBrowserNotificationPermission,
+  enableChromePushNotifications,
   notifyBrowserOfNewItems,
 } from "@/lib/browser-notifications";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ export function NotificationBell() {
     if (!("Notification" in window)) return "unsupported";
     return Notification.permission;
   });
+  const [pushStatus, setPushStatus] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const hydratedRef = useRef(false);
 
@@ -63,6 +64,17 @@ export function NotificationBell() {
   }, []);
 
   useEffect(() => {
+    if (pushPermission !== "granted") return;
+    void enableChromePushNotifications().then((result) => {
+      if (result.pushSubscribed) {
+        setPushStatus(
+          "Chrome push enabled — you’ll get alerts even when this tab is closed.",
+        );
+      }
+    });
+  }, [pushPermission]);
+
+  useEffect(() => {
     if (!open) return;
     function onPointerDown(event: MouseEvent) {
       if (!rootRef.current?.contains(event.target as Node)) {
@@ -80,9 +92,16 @@ export function NotificationBell() {
   }
 
   async function onEnableDesktop() {
-    const permission = await ensureBrowserNotificationPermission();
-    setPushPermission(permission);
-    if (permission === "granted") {
+    setPushStatus(null);
+    const result = await enableChromePushNotifications();
+    setPushPermission(result.permission);
+    if (result.permission === "granted") {
+      setPushStatus(
+        result.pushSubscribed
+          ? "Chrome push enabled — you’ll get alerts even when this tab is closed."
+          : result.error ??
+              "Permission granted. Open-tab alerts are on; remote push needs server VAPID keys.",
+      );
       refresh({ announce: true });
     }
   }
@@ -142,8 +161,8 @@ export function NotificationBell() {
             <div className="border-b border-[var(--sophos-grey-2)] bg-[var(--sophos-grey-1)] px-3 py-2">
               {pushPermission === "denied" ? (
                 <p className="text-xs text-[var(--sophos-grey-4)]">
-                  Desktop notifications are blocked in this browser. Enable them
-                  in site settings if you want alerts while the tab is open.
+                  Desktop notifications are blocked in Chrome. Open the site
+                  settings lock icon → Notifications → Allow.
                 </p>
               ) : (
                 <button
@@ -151,7 +170,22 @@ export function NotificationBell() {
                   className="text-xs font-medium text-[var(--sophos-blue)] hover:underline"
                   onClick={() => void onEnableDesktop()}
                 >
-                  Enable desktop notifications
+                  Enable Chrome push notifications
+                </button>
+              )}
+            </div>
+          )}
+          {pushPermission === "granted" && (
+            <div className="border-b border-[var(--sophos-grey-2)] bg-[var(--sophos-grey-1)] px-3 py-2">
+              {pushStatus ? (
+                <p className="text-xs text-[var(--sophos-grey-4)]">{pushStatus}</p>
+              ) : (
+                <button
+                  type="button"
+                  className="text-xs font-medium text-[var(--sophos-blue)] hover:underline"
+                  onClick={() => void onEnableDesktop()}
+                >
+                  Sync Chrome push subscription
                 </button>
               )}
             </div>

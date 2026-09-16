@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  getWebPushPublicKeyAction,
+  saveWebPushSubscriptionAction,
+} from "@/lib/push-actions";
+
 const SEEN_KEY = "sophos-notif-seen-ids";
 
 function loadSeenIds(): Set<string> {
@@ -25,6 +30,15 @@ export function browserNotificationsSupported(): boolean {
   return typeof window !== "undefined" && "Notification" in window;
 }
 
+export function webPushSupported(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    "serviceWorker" in navigator &&
+    "PushManager" in window &&
+    "Notification" in window
+  );
+}
+
 export async function ensureBrowserNotificationPermission(): Promise<
   NotificationPermission | "unsupported"
 > {
@@ -38,9 +52,101 @@ export async function ensureBrowserNotificationPermission(): Promise<
   }
 }
 
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = window.atob(base64);
+  const output = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i += 1) {
+    output[i] = raw.charCodeAt(i);
+  }
+  return output;
+}
+
+export async function registerPushServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (!webPushSupported()) return null;
+  try {
+    return await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Show Chromium/desktop notifications for newly arrived unread in-app items.
- * Relies on dashboard polling (not a remote push service).
+ * Request permission, register the service worker, and save a Web Push
+ * subscription so Chrome can notify even when the dashboard tab is closed.
+ */
+export async function enableChromePushNotifications(): Promise<{
+  permission: NotificationPermission | "unsupported";
+  pushSubscribed: boolean;
+  error?: string;
+}> {
+  const permission = await ensureBrowserNotificationPermission();
+  if (permission !== "granted") {
+    return { permission, pushSubscribed: false };
+  }
+
+  if (!webPushSupported()) {
+    return { permission, pushSubscribed: false };
+  }
+
+  const { configured, publicKey } = await getWebPushPublicKeyAction();
+  if (!configured || !publicKey) {
+    return {
+      permission,
+      pushSubscribed: false,
+      error:
+        "Desktop alerts while the tab is open still work. Server Web Push keys are not configured yet.",
+    };
+  }
+
+  const registration = await registerPushServiceWorker();
+  if (!registration) {
+    return {
+      permission,
+      pushSubscribed: false,
+      error: "Could not register the notification service worker.",
+    };
+  }
+
+  await navigator.serviceWorker.ready;
+
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
+    });
+  }
+
+  const json = subscription.toJSON();
+  if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
+    return {
+      permission,
+      pushSubscribed: false,
+      error: "Browser returned an incomplete push subscription.",
+    };
+  }
+
+  const saved = await saveWebPushSubscriptionAction({
+    endpoint: json.endpoint,
+    keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
+  });
+
+  if (!saved.ok) {
+    return {
+      permission,
+      pushSubscribed: false,
+      error: saved.error,
+    };
+  }
+
+  return { permission, pushSubscribed: true };
+}
+
+/**
+ * Show Chromium/desktop notifications for newly arrived unread in-app items
+ * while this tab is open (fallback when remote push is unavailable).
  */
 export function notifyBrowserOfNewItems(
   items: Array<{
@@ -78,7 +184,6 @@ export function notifyBrowserOfNewItems(
     }
   }
 
-  // Also mark already-read / displayed ids so we don't spam on first load forever.
   for (const item of items) {
     seen.add(item.id);
   }

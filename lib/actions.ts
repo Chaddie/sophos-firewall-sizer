@@ -107,7 +107,7 @@ export async function createSizingRequest(
     await ensureDemoSeed();
     const existing = await demoStore.sizingRequests.findBySlug(slug);
     if (existing) {
-      return { error: { slug: ["This URL slug is already in use"] } };
+      return { error: { slug: ["This link name is already in use"] } };
     }
     const request = await demoStore.sizingRequests.create({
       slug,
@@ -139,7 +139,7 @@ export async function createSizingRequest(
     .limit(1);
 
   if (existing.length > 0) {
-    return { error: { slug: ["This URL slug is already in use"] } };
+    return { error: { slug: ["This link name is already in use"] } };
   }
 
   const [request] = await getDb()
