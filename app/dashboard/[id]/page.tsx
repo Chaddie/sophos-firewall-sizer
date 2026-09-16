@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { CopyLinkButton } from "@/components/dashboard/copy-link-button";
+import { CustomerInviteEmail } from "@/components/dashboard/customer-invite-email";
 import { RequestWorkflowPanel } from "@/components/dashboard/request-workflow-panel";
 import { SubmissionDetail } from "@/components/dashboard/submission-detail";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getRequestDetail, getSessionRole } from "@/lib/actions";
+import { auth } from "@/lib/auth";
 import {
   creatorAttributionLabel,
   canAccessCatalogAdmin,
@@ -27,9 +29,10 @@ export default async function RequestDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [data, role] = await Promise.all([
+  const [data, role, session] = await Promise.all([
     getRequestDetail(id),
     getSessionRole(),
+    auth(),
   ]);
 
   if (!data) notFound();
@@ -44,6 +47,20 @@ export default async function RequestDetailPage({
     request.expiresAt !== null && request.expiresAt < new Date();
   const contactDomain = request.contactEmail?.split("@")[1];
   const awaitingResubmit = request.status === "pending" && Boolean(submission);
+  const showCustomerInvite =
+    !submission && !archived && !expired && Boolean(request.contactEmail);
+  const inviteProps = request.contactEmail
+    ? {
+        label: request.label,
+        vanityUrl,
+        contactEmail: request.contactEmail,
+        contactName: request.contactName,
+        contactDomain: contactDomain ?? null,
+        expiresAt: request.expiresAt,
+        senderName: session?.user?.name ?? null,
+        senderEmail: session?.user?.email ?? null,
+      }
+    : null;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -105,6 +122,9 @@ export default async function RequestDetailPage({
               {request.status}
             </Badge>
             <CopyLinkButton url={vanityUrl} />
+            {showCustomerInvite && inviteProps && (
+              <CustomerInviteEmail {...inviteProps} variant="buttons" />
+            )}
           </div>
         </div>
 
@@ -114,6 +134,10 @@ export default async function RequestDetailPage({
             <strong>@{contactDomain}</strong> (domain match — not necessarily{" "}
             {request.contactEmail}).
           </p>
+        )}
+
+        {showCustomerInvite && inviteProps && (
+          <CustomerInviteEmail {...inviteProps} />
         )}
 
         <RequestWorkflowPanel
@@ -139,9 +163,10 @@ export default async function RequestDetailPage({
                 Awaiting customer submission
               </CardTitle>
               <CardDescription>
-                Share the link above with your customer. You will get an
-                in-app notification (and email when configured) when they
-                submit. The recommendation appears here after submit.
+                Use Email customer above to open Outlook with the form link, or
+                copy the link / email text. You will get an in-app notification
+                (and email when configured) when they submit. The recommendation
+                appears here after submit.
               </CardDescription>
             </CardHeader>
           </Card>
