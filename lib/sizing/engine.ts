@@ -309,7 +309,8 @@ async function buildBom(
       sku: "WAF-LICENSE",
       description:
         "Web Server Protection (WAF) license — not included in Standard or Xstream protection bundles",
-      quantity: qty,
+      // Active-passive HA: one WAF entitlement covers the pair (same as protection).
+      quantity: 1,
     });
   }
 

@@ -280,7 +280,10 @@ export default async function SizingLogicPage() {
                   HA: Enhanced Support Plus × <strong>1</strong> (one entitlement
                   for the pair)
                 </li>
-                <li>WAF license if requested (qty matches appliance count)</li>
+                <li>
+                  WAF license if requested × <strong>1</strong> — one entitlement
+                  covers a single appliance or an HA pair (active-passive)
+                </li>
                 <li>
                   Optional SFP+ SR/LR optics at the customer-entered count
                   (catalog accessory SKUs)

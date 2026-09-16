@@ -14,10 +14,22 @@ function isProtectionSubscriptionSku(sku: string): boolean {
   return sku.endsWith("-XP") || sku.endsWith("-STD");
 }
 
+function isWafLicenseSku(sku: string): boolean {
+  return sku === "WAF-LICENSE";
+}
+
+function isHaPairLicenseSku(sku: string): boolean {
+  return (
+    isHaPairSupportSku(sku) ||
+    isProtectionSubscriptionSku(sku) ||
+    isWafLicenseSku(sku)
+  );
+}
+
 /**
- * HA needs one Enhanced Support Plus and one protection subscription for the
- * pair, not one per appliance. Older stored recommendations may still have
- * quantity 2 on those lines.
+ * HA (active-passive) needs one Enhanced Support Plus, one protection
+ * subscription, and one WAF license for the pair — not one per appliance.
+ * Older stored recommendations may still have quantity 2 on those lines.
  */
 export function normalizeBomQuantities(items: BomLineItem[]): BomLineItem[] {
   const hasHaSupport = items.some((item) => isHaPairSupportSku(item.sku));
@@ -26,10 +38,10 @@ export function normalizeBomQuantities(items: BomLineItem[]): BomLineItem[] {
     if (isHaPairSupportSku(item.sku) && item.quantity !== 1) {
       return { ...item, quantity: 1 };
     }
-    // When HA is present, protection must stay at qty 1 even if appliances are ×2.
+    // When HA is present, pair licenses must stay at qty 1 even if appliances are ×2.
     if (
       hasHaSupport &&
-      isProtectionSubscriptionSku(item.sku) &&
+      isHaPairLicenseSku(item.sku) &&
       item.quantity !== 1
     ) {
       return { ...item, quantity: 1 };
@@ -44,7 +56,7 @@ export function bomNeedsHaSupportNormalization(items: BomLineItem[]): boolean {
     if (isHaPairSupportSku(item.sku) && item.quantity !== 1) return true;
     if (
       hasHaSupport &&
-      isProtectionSubscriptionSku(item.sku) &&
+      isHaPairLicenseSku(item.sku) &&
       item.quantity !== 1
     ) {
       return true;
