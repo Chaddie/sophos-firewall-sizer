@@ -143,6 +143,16 @@ export const sizingRequests = pgTable("sizing_requests", {
   /** Soft-archive: admins can hide submitted requests from default lists. */
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   archivedById: uuid("archived_by_id").references((): AnyPgColumn => users.id),
+  /**
+   * `customer` = vanity link for external fill-out.
+   * `internal` = SE/admin sized in-app (no customer link).
+   */
+  source: text("source").default("customer").notNull(),
+  /**
+   * Internal requests start `private` (hidden from AMs).
+   * Customer links are `shared`. SE can share an internal request to AMs.
+   */
+  visibility: text("visibility").default("shared").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

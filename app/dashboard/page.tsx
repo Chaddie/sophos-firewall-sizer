@@ -132,6 +132,11 @@ export default async function DashboardPage({
             <Link href="/dashboard/new">
               <Button>New link</Button>
             </Link>
+            {showCreator && (
+              <Link href="/dashboard/internal/new">
+                <Button variant="outline">Internal size</Button>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -175,7 +180,9 @@ export default async function DashboardPage({
                     <div>
                       <p className="font-medium">{req.label}</p>
                       <p className="text-muted-foreground text-sm">
-                        {buildVanityUrl(req.slug)}
+                        {req.source === "internal"
+                          ? "Internal SE sizing (no customer link)"
+                          : buildVanityUrl(req.slug)}
                       </p>
                       {req.contactEmail && (
                         <p className="text-muted-foreground mt-1 text-xs">
@@ -207,6 +214,13 @@ export default async function DashboardPage({
                       )}
                     </div>
                     <div className="flex items-center gap-2">
+                      {req.source === "internal" && (
+                        <Badge variant="outline">Internal</Badge>
+                      )}
+                      {req.source === "internal" &&
+                        req.visibility === "private" && (
+                          <Badge variant="outline">Private</Badge>
+                        )}
                       {req.archivedAt && (
                         <Badge variant="outline">Archived</Badge>
                       )}

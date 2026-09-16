@@ -50,6 +50,11 @@ export function DashboardNavClient({
           <AppHeaderNavLink href="/dashboard">Requests</AppHeaderNavLink>
           <AppHeaderNavLink href="/dashboard/new">New link</AppHeaderNavLink>
           {showAdmin && (
+            <AppHeaderNavLink href="/dashboard/internal/new">
+              Internal size
+            </AppHeaderNavLink>
+          )}
+          {showAdmin && (
             <>
               <AppHeaderNavLink href="/dashboard/partners">
                 Partners

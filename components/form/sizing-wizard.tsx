@@ -21,6 +21,7 @@ import {
   saveSizingDraftAction,
 } from "@/lib/draft-actions";
 import { applySeCorrectionAction } from "@/lib/request-actions";
+import { submitInternalSizingAction } from "@/lib/internal-sizing-actions";
 import { AppHeader } from "@/components/brand/app-header";
 import { FirewallSiteForm } from "@/components/form/firewall-site-form";
 import { SwitchSiteForm } from "@/components/form/switch-site-form";
@@ -62,6 +63,10 @@ interface SizingWizardProps {
    * When set, submit goes through SE correction instead of public submit.
    */
   correctionRequestId?: string;
+  /**
+   * When set, submit saves an internal SE size (no customer /r/ thanks page).
+   */
+  internalRequestId?: string;
 }
 
 interface DraftPayload {
@@ -244,6 +249,7 @@ export function SizingWizard({
   initialSites,
   initialAdditionalNotes,
   correctionRequestId,
+  internalRequestId,
 }: SizingWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -263,9 +269,11 @@ export function SizingWizard({
   const [correctionNote, setCorrectionNote] = useState("");
   const hydrated = useRef(false);
   const isCorrection = Boolean(correctionRequestId);
+  const isInternal = Boolean(internalRequestId);
+  const skipPublicDraft = isCorrection || isInternal;
 
   useEffect(() => {
-    if (isCorrection) {
+    if (skipPublicDraft) {
       hydrated.current = true;
       return;
     }
@@ -329,10 +337,10 @@ export function SizingWizard({
     return () => {
       cancelled = true;
     };
-  }, [slug, isCorrection]);
+  }, [slug, skipPublicDraft]);
 
   useEffect(() => {
-    if (!hydrated.current || isCorrection) return;
+    if (!hydrated.current || skipPublicDraft) return;
     const handle = window.setTimeout(() => {
       const payload = { step, configureSiteIndex, sites, additionalNotes };
       saveDraft(slug, payload);
@@ -344,7 +352,7 @@ export function SizingWizard({
       });
     }, 600);
     return () => window.clearTimeout(handle);
-  }, [slug, step, configureSiteIndex, sites, additionalNotes, isCorrection]);
+  }, [slug, step, configureSiteIndex, sites, additionalNotes, skipPublicDraft]);
 
   const safeConfigureIndex = Math.min(
     configureSiteIndex,
@@ -642,6 +650,22 @@ export function SizingWizard({
         return;
       }
 
+      if (isInternal && internalRequestId) {
+        const result = await submitInternalSizingAction(
+          internalRequestId,
+          JSON.stringify(parsed.data),
+        );
+        if (!result.ok) {
+          setErrors({ _form: [result.error] });
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          setSubmitting(false);
+          return;
+        }
+        router.push(`/dashboard/${internalRequestId}`);
+        router.refresh();
+        return;
+      }
+
       const result = await submitSizingForm(slug, JSON.stringify(parsed.data));
       if (result?.error) {
         const flat: Record<string, string[]> = {};
@@ -693,25 +717,33 @@ export function SizingWizard({
             <h1 className="font-heading text-3xl text-[var(--sophos-navy)]">
               {isCorrection
                 ? "SE answer correction"
-                : "Sophos Sizing Questionnaire"}
+                : isInternal
+                  ? "Internal hardware sizing"
+                  : "Sophos Sizing Questionnaire"}
             </h1>
             <p className="text-sm text-[var(--sophos-gray)]">
               {isCorrection
                 ? label
                   ? `Correct answers for ${label} — prior version is archived`
                   : "Correct customer answers and recalculate the BOM"
-                : label
-                  ? `Sizing request for ${label}`
-                  : "Firewall, switch, and wireless sizing across your sites"}
+                : isInternal
+                  ? label
+                    ? `Internal size for ${label} — no customer link`
+                    : "Size hardware without sending a customer link"
+                  : label
+                    ? `Sizing request for ${label}`
+                    : "Firewall, switch, and wireless sizing across your sites"}
             </p>
-            <a
-              href="/guides/customer-guide.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block text-xs font-medium text-[var(--sophos-blue)] underline underline-offset-2 hover:text-[var(--sophos-navy)]"
-            >
-              Need help? Download the guide (PDF)
-            </a>
+            {!isInternal && !isCorrection && (
+              <a
+                href="/guides/customer-guide.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block text-xs font-medium text-[var(--sophos-blue)] underline underline-offset-2 hover:text-[var(--sophos-navy)]"
+              >
+                Need help? Download the guide (PDF)
+              </a>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -720,7 +752,7 @@ export function SizingWizard({
               <span>{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} />
-            {step < 2 && !isCorrection && (
+            {step < 2 && !isCorrection && !isInternal && (
               <Alert className="border-[var(--sophos-grey-2)] bg-white/80">
                 <AlertDescription className="text-xs text-[var(--sophos-navy)]">
                   Your account team will review recommendations after you
@@ -729,7 +761,15 @@ export function SizingWizard({
                 </AlertDescription>
               </Alert>
             )}
-            {(draftRestored || draftSavedAt) && !isCorrection && (
+            {step < 2 && isInternal && (
+              <Alert className="border-[var(--sophos-grey-2)] bg-white/80">
+                <AlertDescription className="text-xs text-[var(--sophos-navy)]">
+                  Internal size — results stay private to Sales Engineers until
+                  you share the request with the account team.
+                </AlertDescription>
+              </Alert>
+            )}
+            {(draftRestored || draftSavedAt) && !skipPublicDraft && (
               <p className="text-muted-foreground text-center text-xs">
                 {draftRestored
                   ? "Draft restored — you can continue where you left off. "
@@ -1130,10 +1170,14 @@ export function SizingWizard({
                       {submitting
                         ? isCorrection
                           ? "Applying…"
-                          : "Submitting…"
+                          : isInternal
+                            ? "Saving…"
+                            : "Submitting…"
                         : isCorrection
                           ? "Apply correction"
-                          : "Submit"}
+                          : isInternal
+                            ? "Save internal size"
+                            : "Submit"}
                     </Button>
                   </div>
                 )}

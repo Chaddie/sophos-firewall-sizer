@@ -32,6 +32,10 @@ export interface DemoSizingRequest {
   reviewedById?: string | null;
   archivedAt?: Date | null;
   archivedById?: string | null;
+  /** customer | internal */
+  source?: string;
+  /** private | shared */
+  visibility?: string;
   createdAt: Date;
 }
 

@@ -1,10 +1,13 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { CopyLinkButton } from "@/components/dashboard/copy-link-button";
 import { CustomerInviteEmail } from "@/components/dashboard/customer-invite-email";
+import { ShareInternalRequestButton } from "@/components/dashboard/share-internal-request-button";
 import { RequestWorkflowPanel } from "@/components/dashboard/request-workflow-panel";
 import { SubmissionDetail } from "@/components/dashboard/submission-detail";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardDescription,
@@ -46,10 +49,16 @@ export default async function RequestDetailPage({
   const archived = Boolean(request.archivedAt);
   const expired =
     request.expiresAt !== null && request.expiresAt < new Date();
+  const isInternal = request.source === "internal";
+  const isPrivate = request.visibility === "private";
   const contactDomain = request.contactEmail?.split("@")[1];
   const awaitingResubmit = request.status === "pending" && Boolean(submission);
   const showCustomerInvite =
-    !submission && !archived && !expired && Boolean(request.contactEmail);
+    !isInternal &&
+    !submission &&
+    !archived &&
+    !expired &&
+    Boolean(request.contactEmail);
   const inviteProps = request.contactEmail
     ? {
         label: request.label,
@@ -82,7 +91,14 @@ export default async function RequestDetailPage({
             <h1 className="font-heading text-3xl font-light text-[var(--sophos-navy)]">
               {request.label}
             </h1>
-            <p className="text-muted-foreground mt-1 text-sm">{vanityUrl}</p>
+            {!isInternal && (
+              <p className="text-muted-foreground mt-1 text-sm">{vanityUrl}</p>
+            )}
+            {isInternal && (
+              <p className="text-muted-foreground mt-1 text-sm">
+                Internal SE sizing — no customer questionnaire link
+              </p>
+            )}
             {request.contactEmail && (
               <p className="text-muted-foreground mt-1 text-xs">
                 For: {request.contactName ? `${request.contactName} ` : ""}
@@ -106,13 +122,20 @@ export default async function RequestDetailPage({
                 )}
               </p>
             )}
-            {alignedSe && (
+            {alignedSe && !isInternal && (
               <p className="text-muted-foreground mt-1 text-xs">
                 Aligned SE: {alignedSe.name} ({alignedSe.email})
               </p>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {isInternal && <Badge variant="outline">Internal</Badge>}
+            {isInternal && isPrivate && (
+              <Badge variant="outline">Private</Badge>
+            )}
+            {isInternal && !isPrivate && (
+              <Badge variant="outline">Shared</Badge>
+            )}
             {archived && <Badge variant="outline">Archived</Badge>}
             {request.reviewStatus === "flagged" && (
               <Badge variant="outline">Pending SE Review</Badge>
@@ -129,18 +152,29 @@ export default async function RequestDetailPage({
             >
               {request.status}
             </Badge>
-            <CopyLinkButton url={vanityUrl} />
+            {!isInternal && <CopyLinkButton url={vanityUrl} />}
             {showCustomerInvite && inviteProps && (
               <CustomerInviteEmail {...inviteProps} variant="buttons" />
+            )}
+            {isInternal && isPrivate && showCreator && (
+              <ShareInternalRequestButton requestId={request.id} />
             )}
           </div>
         </div>
 
-        {!submission && contactDomain && (
+        {!submission && contactDomain && !isInternal && (
           <p className="rounded-md border border-[var(--sophos-grey-2)] bg-white px-3 py-2 text-sm text-[var(--sophos-navy)]">
             Who can open this link: anyone with an email ending in{" "}
             <strong>@{contactDomain}</strong> (domain match — not necessarily{" "}
             {request.contactEmail}).
+          </p>
+        )}
+
+        {isInternal && isPrivate && showCreator && (
+          <p className="rounded-md border border-[var(--sophos-grey-2)] bg-white px-3 py-2 text-sm text-[var(--sophos-navy)]">
+            This internal size is private to Sales Engineers. Share with the
+            account team when you want Account Managers to see it in their
+            request list.
           </p>
         )}
 
@@ -170,14 +204,22 @@ export default async function RequestDetailPage({
           <Card className="border-[var(--sophos-grey-2)] shadow-sm">
             <CardHeader>
               <CardTitle className="font-heading text-xl font-light">
-                Awaiting customer submission
+                {isInternal
+                  ? "Awaiting internal sizing"
+                  : "Awaiting customer submission"}
               </CardTitle>
               <CardDescription>
-                Use Email customer above to open Outlook with the form link, or
-                copy the link / email text. You will get an in-app notification
-                (and email when configured) when they submit. The recommendation
-                appears here after submit.
+                {isInternal
+                  ? "Complete the in-app questionnaire to generate a BOM. No customer link is involved."
+                  : "Use Email customer above to open Outlook with the form link, or copy the link / email text. You will get an in-app notification (and email when configured) when they submit. The recommendation appears here after submit."}
               </CardDescription>
+              {isInternal && showCreator && !archived && (
+                <div className="pt-2">
+                  <Link href={`/dashboard/internal/${request.id}`}>
+                    <Button>Continue internal size</Button>
+                  </Link>
+                </div>
+              )}
             </CardHeader>
           </Card>
         ) : (
@@ -188,16 +230,20 @@ export default async function RequestDetailPage({
                 they submit again (then this version moves to history).
               </p>
             )}
-            {!showCreator && request.reviewStatus !== "reviewed" && (
-              <p className="rounded-md bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
-                Please review this recommendation with your Sales Engineer
-                before sending a quote. Use “Flag for SE” above when ready.
-                CSV export unlocks after SE review.
-              </p>
-            )}
+            {!showCreator &&
+              !isInternal &&
+              request.reviewStatus !== "reviewed" && (
+                <p className="rounded-md bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+                  Please review this recommendation with your Sales Engineer
+                  before sending a quote. Use “Flag for SE” above when ready.
+                  CSV export unlocks after SE review.
+                </p>
+              )}
             {request.reviewStatus === "reviewed" && (
               <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
-                Sales Engineer has marked this recommendation as reviewed.
+                {isInternal
+                  ? "Internal size saved. Export is available."
+                  : "Sales Engineer has marked this recommendation as reviewed."}
               </p>
             )}
             <SubmissionDetail
@@ -208,10 +254,14 @@ export default async function RequestDetailPage({
               opportunityId={request.opportunityId ?? null}
               label={request.label}
               exportAllowed={
-                showCreator || request.reviewStatus === "reviewed"
+                showCreator ||
+                isInternal ||
+                request.reviewStatus === "reviewed"
               }
               exportBlockedReason={
-                showCreator || request.reviewStatus === "reviewed"
+                showCreator ||
+                isInternal ||
+                request.reviewStatus === "reviewed"
                   ? null
                   : "CSV and quote export unlock after a Sales Engineer marks this request as reviewed. Flag for SE review above when ready."
               }

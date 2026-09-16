@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { hasSePrivileges } from "@/lib/auth-utils";
+import { hasSePrivileges, isPartner } from "@/lib/auth-utils";
 import { getDb } from "@/lib/db";
 import { demoStore, isDemoMode } from "@/lib/db/demo-store";
 import { ensureDemoSeed } from "@/lib/db/demo-seed";
@@ -22,6 +22,35 @@ import { and, desc, eq, ilike, inArray, isNotNull, isNull, or } from "drizzle-or
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+function requestSource(request: { source?: string | null }) {
+  return request.source === "internal" ? "internal" : "customer";
+}
+
+function requestVisibility(request: { visibility?: string | null }) {
+  return request.visibility === "private" ? "private" : "shared";
+}
+
+/** AM/partner cannot open private internal SE sizes until shared. */
+function canAccessRequestAsViewer(
+  role: string | null | undefined,
+  userId: string,
+  request: {
+    createdById: string;
+    source?: string | null;
+    visibility?: string | null;
+  },
+): boolean {
+  if (hasSePrivileges(role)) return true;
+  if (request.createdById === userId) return true;
+  if (
+    !isPartner(role) &&
+    requestSource(request) === "internal" &&
+    requestVisibility(request) === "shared"
+  ) {
+    return true;
+  }
+  return false;
+}
 export type AlignableSeOption = {
   id: string;
   name: string;
@@ -188,14 +217,37 @@ export async function submitSizingForm(slug: string, payloadJson: string) {
   if (isDemoMode()) {
     await ensureDemoSeed();
     const request = await demoStore.sizingRequests.findBySlug(slug);
-    if (request) companyLabel = request.label;
+    if (!request) {
+      return { error: { _form: ["Sizing request not found"] } };
+    }
+    if (requestSource(request) === "internal") {
+      return {
+        error: {
+          _form: ["This is an internal sizing request and cannot be submitted via a public link."],
+        },
+      };
+    }
+    companyLabel = request.label;
   } else {
     const [request] = await getDb()
-      .select({ label: sizingRequests.label })
+      .select({
+        label: sizingRequests.label,
+        source: sizingRequests.source,
+      })
       .from(sizingRequests)
       .where(eq(sizingRequests.slug, slug))
       .limit(1);
-    if (request) companyLabel = request.label;
+    if (!request) {
+      return { error: { _form: ["Sizing request not found"] } };
+    }
+    if (requestSource(request) === "internal") {
+      return {
+        error: {
+          _form: ["This is an internal sizing request and cannot be submitted via a public link."],
+        },
+      };
+    }
+    companyLabel = request.label;
   }
 
   const recommendation = await calculateSubmission(answers, companyLabel);
@@ -368,12 +420,15 @@ export type DashboardRequestRow = {
   expiresAt: Date | null;
   contactName?: string | null;
   contactEmail?: string | null;
+  createdById?: string;
   createdByName?: string;
   createdByEmail?: string;
   createdByRole?: string;
   reviewStatus?: string | null;
   opportunityId?: string | null;
   archivedAt?: Date | null;
+  source?: string | null;
+  visibility?: string | null;
 };
 
 async function enrichDemoRequests(
@@ -462,10 +517,22 @@ export async function getDashboardRequests(opts?: {
 
   if (isDemoMode()) {
     await ensureDemoSeed();
-    const requests = mineOnly
-      ? await demoStore.sizingRequests.listByUser(session.user.id)
+    let requests = isSe
+      ? mineOnly
+        ? await demoStore.sizingRequests.listByUser(session.user.id)
+        : await demoStore.sizingRequests.listAll()
       : await demoStore.sizingRequests.listAll();
     let enriched = await enrichDemoRequests(requests, showCreator);
+    if (!isSe) {
+      enriched = enriched.filter((row) => {
+        if (row.createdById === session.user.id) return true;
+        if (isPartner(session.user.role)) return false;
+        return (
+          requestSource(row) === "internal" &&
+          requestVisibility(row) === "shared"
+        );
+      });
+    }
     enriched = enriched.filter(matchesArchive);
     enriched = enriched.filter(matchesReview);
     if (statusFilter) {
@@ -520,12 +587,15 @@ export async function getDashboardRequests(opts?: {
         expiresAt: sizingRequests.expiresAt,
         contactName: sizingRequests.contactName,
         contactEmail: sizingRequests.contactEmail,
+        createdById: sizingRequests.createdById,
         createdByName: users.name,
         createdByEmail: users.email,
         createdByRole: users.role,
         reviewStatus: sizingRequests.reviewStatus,
         opportunityId: sizingRequests.opportunityId,
         archivedAt: sizingRequests.archivedAt,
+        source: sizingRequests.source,
+        visibility: sizingRequests.visibility,
       })
       .from(sizingRequests)
       .innerJoin(users, eq(sizingRequests.createdById, users.id));
@@ -539,7 +609,18 @@ export async function getDashboardRequests(opts?: {
     return rows;
   }
 
-  const amConditions = [eq(sizingRequests.createdById, session.user.id)];
+  // AM: own links + shared internal sizes. Partner: own links only.
+  const amVisibility = isPartner(session.user.role)
+    ? eq(sizingRequests.createdById, session.user.id)
+    : or(
+        eq(sizingRequests.createdById, session.user.id),
+        and(
+          eq(sizingRequests.source, "internal"),
+          eq(sizingRequests.visibility, "shared"),
+        ),
+      );
+
+  const amConditions = [amVisibility!];
   if (statusClause) amConditions.push(statusClause);
   if (reviewClause) amConditions.push(reviewClause);
   if (archiveClause) amConditions.push(archiveClause);
@@ -554,9 +635,12 @@ export async function getDashboardRequests(opts?: {
       expiresAt: sizingRequests.expiresAt,
       contactName: sizingRequests.contactName,
       contactEmail: sizingRequests.contactEmail,
+      createdById: sizingRequests.createdById,
       reviewStatus: sizingRequests.reviewStatus,
       opportunityId: sizingRequests.opportunityId,
       archivedAt: sizingRequests.archivedAt,
+      source: sizingRequests.source,
+      visibility: sizingRequests.visibility,
     })
     .from(sizingRequests)
     .where(and(...amConditions))
@@ -573,7 +657,11 @@ export async function getRequestDetail(id: string) {
     await ensureDemoSeed();
     const request = await demoStore.sizingRequests.findById(id);
     if (!request) return null;
-    if (!canViewAll && request.createdById !== session.user.id) return null;
+    if (
+      !canAccessRequestAsViewer(session.user.role, session.user.id, request)
+    ) {
+      return null;
+    }
 
     const submission = await demoStore.submissions.findByRequestId(request.id);
     let creator: {
@@ -622,7 +710,11 @@ export async function getRequestDetail(id: string) {
     .limit(1);
 
   if (!request) return null;
-  if (!canViewAll && request.createdById !== session.user.id) return null;
+  if (
+    !canAccessRequestAsViewer(session.user.role, session.user.id, request)
+  ) {
+    return null;
+  }
 
   const [submission] = await getDb()
     .select()
@@ -681,6 +773,7 @@ export async function getPublicRequest(slug: string) {
     await ensureDemoSeed();
     const request = await demoStore.sizingRequests.findBySlug(slug);
     if (!request) return null;
+    if (requestSource(request) === "internal") return null;
     return {
       id: request.id,
       slug: request.slug,
@@ -701,12 +794,14 @@ export async function getPublicRequest(slug: string) {
       expiresAt: sizingRequests.expiresAt,
       archivedAt: sizingRequests.archivedAt,
       contactEmail: sizingRequests.contactEmail,
+      source: sizingRequests.source,
     })
     .from(sizingRequests)
     .where(eq(sizingRequests.slug, slug))
     .limit(1);
 
   if (!request) return null;
+  if (requestSource(request) === "internal") return null;
   return {
     id: request.id,
     slug: request.slug,
@@ -735,14 +830,23 @@ export async function verifyRequestAccess(slug: string, email: string) {
     await ensureDemoSeed();
     const request = await demoStore.sizingRequests.findBySlug(slug);
     if (!request) return { error: "Sizing request not found" };
+    if (requestSource(request) === "internal") {
+      return { error: "Sizing request not found" };
+    }
     contactEmail = request.contactEmail;
   } else {
     const [request] = await getDb()
-      .select({ contactEmail: sizingRequests.contactEmail })
+      .select({
+        contactEmail: sizingRequests.contactEmail,
+        source: sizingRequests.source,
+      })
       .from(sizingRequests)
       .where(eq(sizingRequests.slug, slug))
       .limit(1);
     if (!request) return { error: "Sizing request not found" };
+    if (requestSource(request) === "internal") {
+      return { error: "Sizing request not found" };
+    }
     contactEmail = request.contactEmail;
   }
 

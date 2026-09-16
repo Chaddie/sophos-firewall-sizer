@@ -11,7 +11,7 @@ Multi-site sizing questionnaire for Sophos Firewall, Switch, and Wireless (AP) p
 - **Wireless / AP handoff** — site survey + uploads; email/summary for `presalesdesk-wireless@sophos.com` (no automated AP BOM)
 - **Roles**
   - **Account Manager** — own links only; Flag for SE; export unlocked after SE review
-  - **Sales Engineer** — all requests; SE review queue; Mark reviewed / Needs changes (notifies AM); SE correction
+  - **Sales Engineer** — all requests; SE review queue; Mark reviewed / Needs changes (notifies AM); SE correction; **Internal size** (no customer link; private until shared)
   - **Partner** — magic-link portal to create links (sponsored by an SE)
   - **Admin** — catalog admin, archive, recalculate open BOMs
 - **Flag → Review → export** — Flag notifies SEs; Reviewed / Needs changes notifies the AM; AM CSV/quote export soft-gated until reviewed
@@ -60,7 +60,7 @@ Create a free database at [neon.tech](https://neon.tech), then push the schema:
 npm run db:push
 ```
 
-If you're upgrading an existing database, run the numbered migration scripts in `scripts/` in order (`migrate-v2.sql` … `migrate-v13.sql`) against your database before or alongside `db:push`.
+If you're upgrading an existing database, run the numbered migration scripts in `scripts/` in order (`migrate-v2.sql` … `migrate-v15.sql`) against your database before or alongside `db:push`.
 
 Seed users and catalogs:
 
