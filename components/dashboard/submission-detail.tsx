@@ -111,9 +111,15 @@ export function SubmissionDetail({
             <Separator />
 
             {recommendation.sites.map((site) => (
-              <div key={site.siteName} className="space-y-4">
+              <div
+                key={`${site.siteName}-${site.siteQuantity ?? 1}`}
+                className="space-y-4"
+              >
                 <h3 className="font-heading text-lg text-[var(--sophos-navy)]">
                   {site.siteName}
+                  {(site.siteQuantity ?? 1) > 1
+                    ? ` (×${site.siteQuantity} identical sites)`
+                    : ""}
                 </h3>
 
                 {site.firewall && (

@@ -513,6 +513,17 @@ export function SizingWizard({
         if (!site.siteName.trim()) {
           stepErrors[`sites.${i}.siteName`] = ["Site name is required"];
         }
+        const qty = Number(site.siteQuantity);
+        if (
+          !Number.isInteger(qty) ||
+          qty < 1 ||
+          qty > 64 ||
+          site.siteQuantity.trim() === ""
+        ) {
+          stepErrors[`sites.${i}.siteQuantity`] = [
+            "Enter a whole number from 1 to 64",
+          ];
+        }
       });
       const names = sites.map((s) => s.siteName.trim().toLowerCase());
       if (new Set(names).size !== names.length) {
@@ -805,7 +816,7 @@ export function SizingWizard({
               </CardTitle>
               <CardDescription>
                 {step === 0 &&
-                  "Add each location you need to size. You can configure firewall, switches, and wireless per site."}
+                  "Add each location you need to size. Use Quantity (×N) when many identical sites share the same design — size one template and we multiply the quote."}
                 {step === 1 &&
                   (sites.length > 1
                     ? "Configure one site at a time. Continue to move to the next site."
@@ -820,9 +831,9 @@ export function SizingWizard({
                   {sites.map((site, index) => (
                     <div
                       key={index}
-                      className="flex items-end gap-3 rounded-lg border p-4"
+                      className="flex flex-wrap items-end gap-3 rounded-lg border p-4"
                     >
-                      <div className="flex-1">
+                      <div className="min-w-[12rem] flex-1">
                         <LabelWithTooltip
                           htmlFor={`sites-${index}-siteName`}
                           label="Site / location name"
@@ -843,6 +854,32 @@ export function SizingWizard({
                         {errors[`sites.${index}.siteName`] && (
                           <p className="text-destructive mt-1 text-xs">
                             {errors[`sites.${index}.siteName`].join(", ")}
+                          </p>
+                        )}
+                      </div>
+                      <div className="w-28">
+                        <LabelWithTooltip
+                          htmlFor={`sites-${index}-siteQuantity`}
+                          label="Quantity (×)"
+                          tooltip={SITE_FIELD_TOOLTIPS.siteQuantity}
+                        />
+                        <Input
+                          id={`sites-${index}-siteQuantity`}
+                          type="number"
+                          min={1}
+                          max={64}
+                          value={site.siteQuantity}
+                          onChange={(e) =>
+                            updateSite(index, {
+                              ...site,
+                              siteQuantity: e.target.value,
+                            })
+                          }
+                          className="mt-1.5"
+                        />
+                        {errors[`sites.${index}.siteQuantity`] && (
+                          <p className="text-destructive mt-1 text-xs">
+                            {errors[`sites.${index}.siteQuantity`].join(", ")}
                           </p>
                         )}
                       </div>
@@ -1072,12 +1109,17 @@ export function SizingWizard({
                           <div>
                             <p className="font-heading text-lg text-[var(--sophos-navy)]">
                               {site.siteName}
+                              {Number(site.siteQuantity) > 1
+                                ? ` (×${site.siteQuantity})`
+                                : ""}
                             </p>
                             <p className="text-muted-foreground text-xs">
                               {[
                                 site.enableFirewall && "Firewall",
                                 site.enableSwitches && "Switches",
                                 site.enableWireless && "Wireless",
+                                Number(site.siteQuantity) > 1 &&
+                                  `${site.siteQuantity} identical sites`,
                               ]
                                 .filter(Boolean)
                                 .join(" · ") || "No products selected"}

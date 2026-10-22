@@ -16,6 +16,23 @@ export {
   normalizeStoredRecommendation,
 } from "./bom-normalize";
 
+export function siteDisplayLabel(siteName: string, siteQuantity = 1): string {
+  const qty = Math.max(1, Math.floor(siteQuantity) || 1);
+  return qty > 1 ? `${siteName} (×${qty})` : siteName;
+}
+
+export function scaleBomQuantities(
+  items: BomLineItem[],
+  siteQuantity = 1,
+): BomLineItem[] {
+  const qty = Math.max(1, Math.floor(siteQuantity) || 1);
+  if (qty === 1) return items;
+  return items.map((item) => ({
+    ...item,
+    quantity: item.quantity * qty,
+  }));
+}
+
 export function prefixBom(
   items: BomLineItem[],
   siteName: string,
@@ -48,6 +65,7 @@ export function siteInputToSubmission(
 ): SiteSubmission {
   return {
     siteName: site.siteName,
+    siteQuantity: Math.max(1, Math.floor(site.siteQuantity ?? 1) || 1),
     products: {
       ...(site.enableFirewall && site.firewall
         ? { firewall: site.firewall }
@@ -86,13 +104,21 @@ export async function calculateSubmission(
   const sites: SiteRecommendation[] = [];
 
   for (const site of answers.sites) {
-    const siteRec: SiteRecommendation = { siteName: site.siteName };
+    const siteQuantity = Math.max(1, Math.floor(site.siteQuantity ?? 1) || 1);
+    const bomLabel = siteDisplayLabel(site.siteName, siteQuantity);
+    const siteRec: SiteRecommendation = {
+      siteName: site.siteName,
+      siteQuantity,
+    };
 
     if (site.products.firewall) {
       const fwRec = await calculateRecommendation(site.products.firewall);
       siteRec.firewall = {
         ...fwRec,
-        bom: prefixBom(fwRec.bom, site.siteName, "firewall"),
+        bom: scaleBomQuantities(
+          prefixBom(fwRec.bom, bomLabel, "firewall"),
+          siteQuantity,
+        ),
       };
     }
 
@@ -100,15 +126,19 @@ export async function calculateSubmission(
       const swRec = await calculateSwitchRecommendation(site.products.switches);
       siteRec.switches = {
         ...swRec,
-        bom: prefixBom(swRec.bom, site.siteName, "switch"),
+        bom: scaleBomQuantities(
+          prefixBom(swRec.bom, bomLabel, "switch"),
+          siteQuantity,
+        ),
       };
     }
 
     if (site.products.wireless) {
       siteRec.wireless = buildWirelessHandoff(
-        site.siteName,
+        bomLabel,
         site.products.wireless,
         companyLabel,
+        siteQuantity,
       );
     }
 

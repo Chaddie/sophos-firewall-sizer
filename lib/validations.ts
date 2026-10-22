@@ -207,6 +207,8 @@ export const AP6_MODEL_OPTIONS = [
 export const siteSubmissionSchema = z
   .object({
     siteName: z.string().min(1, "Site name is required"),
+    /** Identical copies of this site design to quote (BOM × N). */
+    siteQuantity: z.coerce.number().int().min(1).max(64).default(1),
     enableFirewall: z.boolean(),
     enableSwitches: z.boolean(),
     enableWireless: z.boolean(),

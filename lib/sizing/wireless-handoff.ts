@@ -15,13 +15,18 @@ export function buildWirelessSummary(
   siteName: string,
   answers: WirelessSiteAnswers,
   companyLabel?: string,
+  siteQuantity = 1,
 ): string {
   const fileNames = (answers.sitePlanFiles ?? []).map((f) => f.name);
+  const qty = Math.max(1, Math.floor(siteQuantity) || 1);
 
   const lines = [
     "Sophos Wireless Sizing Intake",
     companyLabel ? `Customer: ${companyLabel}` : null,
     `Site: ${siteName}`,
+    qty > 1
+      ? `Identical site count: ${qty} — design the AP plan for one site, then multiply the recommendation ×${qty}`
+      : null,
     "",
     `SFDC opportunity URL: ${SFDC_PLACEHOLDER}`,
     `Expected timeframe for complete survey plan: ${TIMEFRAME_PLACEHOLDER}`,
@@ -60,12 +65,18 @@ export function buildWirelessMailtoBase(
   siteName: string,
   answers: WirelessSiteAnswers,
   companyLabel?: string,
+  siteQuantity = 1,
 ) {
   const subject = `Wireless sizing — ${companyLabel ?? "Customer"} — ${siteName}`;
   return {
     to: WIRELESS_PRESALES_EMAIL,
     subject,
-    bodyTemplate: buildWirelessSummary(siteName, answers, companyLabel),
+    bodyTemplate: buildWirelessSummary(
+      siteName,
+      answers,
+      companyLabel,
+      siteQuantity,
+    ),
   };
 }
 
@@ -74,8 +85,14 @@ export function buildWirelessMailtoUrl(
   siteName: string,
   answers: WirelessSiteAnswers,
   companyLabel?: string,
+  siteQuantity = 1,
 ): string {
-  const base = buildWirelessMailtoBase(siteName, answers, companyLabel);
+  const base = buildWirelessMailtoBase(
+    siteName,
+    answers,
+    companyLabel,
+    siteQuantity,
+  );
   return `mailto:${base.to}?subject=${encodeURIComponent(base.subject)}&body=${encodeURIComponent(base.bodyTemplate)}`;
 }
 
@@ -83,16 +100,32 @@ export function buildWirelessHandoff(
   siteName: string,
   answers: WirelessSiteAnswers,
   companyLabel?: string,
+  siteQuantity = 1,
 ) {
-  const summaryText = buildWirelessSummary(siteName, answers, companyLabel);
-  const mailtoBase = buildWirelessMailtoBase(siteName, answers, companyLabel);
+  const summaryText = buildWirelessSummary(
+    siteName,
+    answers,
+    companyLabel,
+    siteQuantity,
+  );
+  const mailtoBase = buildWirelessMailtoBase(
+    siteName,
+    answers,
+    companyLabel,
+    siteQuantity,
+  );
   return {
     siteName,
     answers,
     summaryText,
     mailtoBase,
     /** Kept for older stored recommendations / callers. */
-    mailtoUrl: buildWirelessMailtoUrl(siteName, answers, companyLabel),
+    mailtoUrl: buildWirelessMailtoUrl(
+      siteName,
+      answers,
+      companyLabel,
+      siteQuantity,
+    ),
   };
 }
 

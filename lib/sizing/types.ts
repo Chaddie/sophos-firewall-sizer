@@ -109,6 +109,11 @@ export interface SiteProducts {
 
 export interface SiteSubmission {
   siteName: string;
+  /**
+   * How many identical copies of this site design to quote.
+   * Defaults to 1 when absent (legacy submissions).
+   */
+  siteQuantity?: number;
   products: SiteProducts;
 }
 
@@ -282,6 +287,8 @@ export interface WirelessHandoffSummary {
 
 export interface SiteRecommendation {
   siteName: string;
+  /** Identical site copies applied to BOM quantities (default 1). */
+  siteQuantity?: number;
   firewall?: FirewallRecommendation;
   switches?: SwitchRecommendation;
   wireless?: WirelessHandoffSummary;

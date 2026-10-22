@@ -1,3 +1,4 @@
+import { notInArray } from "drizzle-orm";
 import { db } from "../lib/db";
 import { accessoryModels, firewallModels, switchModels } from "../lib/db/schema";
 import accessoryCatalog from "../lib/sizing/accessories.json";
@@ -76,13 +77,19 @@ async function seedCatalog() {
   console.log(`Seeded ${fwModels.length} firewall models.`);
 
   const swModels = (switchCatalog as { models: SwitchCatalogModel[] }).models;
+  const swIds = swModels.map((m) => m.id);
   for (const model of swModels) {
     await db
       .insert(switchModels)
       .values(model)
       .onConflictDoUpdate({ target: switchModels.id, set: model });
   }
-  console.log(`Seeded ${swModels.length} switch models.`);
+  // Drop obsolete / fictional SKUs no longer in the bundled catalog
+  // (e.g. CS220 — not a real Sophos model).
+  if (swIds.length > 0) {
+    await db.delete(switchModels).where(notInArray(switchModels.id, swIds));
+  }
+  console.log(`Seeded ${swModels.length} switch models (obsolete ids removed).`);
 
   const accModels = (accessoryCatalog as { models: AccessoryModel[] }).models;
   for (const model of accModels) {

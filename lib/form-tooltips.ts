@@ -152,6 +152,8 @@ export const CONTACT_FIELD_TOOLTIPS = {
 export const SITE_FIELD_TOOLTIPS = {
   siteName:
     "A short, recognizable name for this location (e.g. \"HQ - London\", \"Warehouse 2\"). Used to label products for this site in the final bill of materials.",
+  siteQuantity:
+    "How many identical copies of this site design to quote (e.g. 5 or 16). Size one site as a template — firewall, switch, and accessory quantities are multiplied by this number. Wireless handoff notes the multiplier for the specialist team.",
 };
 
 export const PRODUCT_TOGGLE_TOOLTIPS = {

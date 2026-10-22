@@ -218,10 +218,14 @@ function formatSiteProducts(site: SiteSubmission) {
 
 export function formatAnswersForDisplay(answers: StoredAnswers) {
   if (isV2Answers(answers)) {
-    const sites = answers.sites.map((site) => ({
-      siteName: site.siteName,
-      sections: formatSiteProducts(site),
-    }));
+    const sites = answers.sites.map((site) => {
+      const qty = Math.max(1, Math.floor(site.siteQuantity ?? 1) || 1);
+      return {
+        siteName:
+          qty > 1 ? `${site.siteName} (×${qty} identical sites)` : site.siteName,
+        sections: formatSiteProducts(site),
+      };
+    });
 
     const contactRows: { label: string; value: string }[] = [];
     if (answers.contact?.customerName) {

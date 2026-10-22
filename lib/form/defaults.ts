@@ -70,6 +70,11 @@ export interface WirelessFormState {
 
 export interface SiteFormState {
   siteName: string;
+  /**
+   * How many identical copies of this site design to quote (×N).
+   * Firewall/switch BOM line quantities are multiplied by this after sizing one unit.
+   */
+  siteQuantity: string;
   enableFirewall: boolean;
   enableSwitches: boolean;
   enableWireless: boolean;
@@ -121,6 +126,7 @@ export function normalizeSiteFormState(site: SiteFormState): SiteFormState {
   return {
     ...defaultSiteState(site.siteName ?? ""),
     ...site,
+    siteQuantity: site.siteQuantity || "1",
     enableFirewall: Boolean(site.enableFirewall),
     enableSwitches: Boolean(site.enableSwitches),
     enableWireless: Boolean(site.enableWireless),
@@ -160,6 +166,7 @@ export const defaultWirelessState = (): WirelessFormState => ({
 
 export const defaultSiteState = (name = ""): SiteFormState => ({
   siteName: name,
+  siteQuantity: "1",
   enableFirewall: true,
   enableSwitches: false,
   enableWireless: false,
@@ -267,6 +274,7 @@ export function sitesToSubmissionPayload(
     ...(notes ? { additionalNotes: notes } : {}),
     sites: sites.map((site) => ({
       siteName: site.siteName,
+      siteQuantity: Math.max(1, Number(site.siteQuantity) || 1),
       enableFirewall: site.enableFirewall,
       enableSwitches: site.enableSwitches,
       enableWireless: site.enableWireless,
@@ -297,6 +305,7 @@ export function answersToSiteFormStates(
     const sw = site.products.switches;
     const wl = site.products.wireless;
     const siteState = defaultSiteState(site.siteName);
+    siteState.siteQuantity = str(site.siteQuantity ?? 1) || "1";
     siteState.enableFirewall = Boolean(fw);
     siteState.enableSwitches = Boolean(sw);
     siteState.enableWireless = Boolean(wl);
