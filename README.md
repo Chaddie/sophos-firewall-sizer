@@ -60,7 +60,7 @@ Create a free database at [neon.tech](https://neon.tech), then push the schema:
 npm run db:push
 ```
 
-If you're upgrading an existing database, run the numbered migration scripts in `scripts/` in order (`migrate-v2.sql` … `migrate-v15.sql`) against your database before or alongside `db:push`.
+If you're upgrading an existing database, run the numbered migration scripts in `scripts/` in order (`migrate-v2.sql` … `migrate-v16.sql`) against your database before or alongside `db:push`.
 
 Seed users and catalogs:
 

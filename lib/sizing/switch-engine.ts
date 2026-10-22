@@ -266,14 +266,30 @@ function buildSwitchBom(
   quantity = 1,
 ): BomLineItem[] {
   const qty = Math.max(1, Math.floor(quantity) || 1);
-  return [
+  const bom: BomLineItem[] = [
     {
       sku: model.sku,
-      description: `${model.name}`,
+      description: model.name,
       quantity: qty,
       productType: "switch",
     },
   ];
+
+  // One Support and Services license per switch (hardware + software support).
+  const supportSku =
+    model.supportSku?.trim() ||
+    `${model.sku}-SUPPORT`;
+  const supportName =
+    model.supportName?.trim() ||
+    `Sophos Switch Support and Services for ${model.name}`;
+  bom.push({
+    sku: supportSku,
+    description: supportName,
+    quantity: qty,
+    productType: "switch",
+  });
+
+  return bom;
 }
 
 /** Rebuilds the BOM for a specific catalog model, used when an AM/SE

@@ -292,6 +292,9 @@ describe("switch golden scenarios", () => {
       provenance,
     );
     assert.equal(rec.bom[0]?.quantity, 3);
+    assert.equal(rec.bom.length, 2);
+    assert.equal(rec.bom[1]?.quantity, 3);
+    assert.match(rec.bom[1]?.sku ?? "", /SUPPORT/);
     assert.ok(rec.whyRecommended);
     assert.ok(rec.confidence);
   });

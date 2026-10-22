@@ -79,10 +79,15 @@ async function seedCatalog() {
   const swModels = (switchCatalog as { models: SwitchCatalogModel[] }).models;
   const swIds = swModels.map((m) => m.id);
   for (const model of swModels) {
+    const row = {
+      ...model,
+      supportSku: model.supportSku?.trim() || null,
+      supportName: model.supportName?.trim() || null,
+    };
     await db
       .insert(switchModels)
-      .values(model)
-      .onConflictDoUpdate({ target: switchModels.id, set: model });
+      .values(row)
+      .onConflictDoUpdate({ target: switchModels.id, set: row });
   }
   // Drop obsolete / fictional SKUs no longer in the bundled catalog
   // (e.g. CS220 — not a real Sophos model).

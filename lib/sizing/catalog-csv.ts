@@ -55,6 +55,8 @@ export const SWITCH_CSV_HEADERS = [
   "poeSupported",
   "poeBudgetWatts",
   "supportsBtPoE",
+  "supportSku",
+  "supportName",
 ] as const;
 
 export const ACCESSORY_CSV_HEADERS = ["id", "type", "name", "sku"] as const;
@@ -248,6 +250,8 @@ export function switchModelsToCsv(models: SwitchCatalogModel[]): string {
         m.poeSupported,
         m.poeBudgetWatts,
         m.supportsBtPoE,
+        m.supportSku ?? "",
+        m.supportName ?? "",
       ]
         .map(csvEscape)
         .join(","),
@@ -310,6 +314,8 @@ export function switchCsvTemplate(): string {
       "false",
       "0",
       "false",
+      "SV-EXAMPLE-36ZZNCAA",
+      "Sophos Switch Support and Services for CS-EXAMPLE (36 months)",
     ].join(","),
   ].join("\n");
 }
@@ -554,6 +560,9 @@ export function parseSwitchCsv(
       continue;
     }
 
+    const supportSku = cell(row, index, "supportSku").trim() || undefined;
+    const supportName = cell(row, index, "supportName").trim() || undefined;
+
     seen.add(id);
     models.push({
       id,
@@ -568,6 +577,8 @@ export function parseSwitchCsv(
       poeSupported: poeSupported.value,
       poeBudgetWatts: nums.poeBudgetWatts,
       supportsBtPoE: supportsBtPoE.value,
+      supportSku,
+      supportName,
     });
   }
 

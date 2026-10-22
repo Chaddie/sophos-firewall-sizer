@@ -1,5 +1,5 @@
 {
-  "version": "2026.3",
+  "version": "2026.4",
   "models": [
     {
       "id": "cs210-8fp",
@@ -13,7 +13,9 @@
       "sfpPlusUplinkCount": 4,
       "poeSupported": true,
       "poeBudgetWatts": 240,
-      "supportsBtPoE": true
+      "supportsBtPoE": true,
+      "supportSku": "SV208F36ZZNCAA",
+      "supportName": "Sophos Switch Support and Services for CS210-8FP (36 months)"
     },
     {
       "id": "cs210-24fp",
@@ -27,7 +29,9 @@
       "sfpPlusUplinkCount": 4,
       "poeSupported": true,
       "poeBudgetWatts": 410,
-      "supportsBtPoE": false
+      "supportsBtPoE": false,
+      "supportSku": "SV224F36ZZNCAA",
+      "supportName": "Sophos Switch Support and Services for CS210-24FP (36 months)"
     },
     {
       "id": "cs210-48fp",
@@ -41,7 +45,9 @@
       "sfpPlusUplinkCount": 4,
       "poeSupported": true,
       "poeBudgetWatts": 740,
-      "supportsBtPoE": false
+      "supportsBtPoE": false,
+      "supportSku": "SV248F36ZZNCAA",
+      "supportName": "Sophos Switch Support and Services for CS210-48FP (36 months)"
     },
     {
       "id": "cs1010-8fp",
@@ -55,7 +61,9 @@
       "sfpPlusUplinkCount": 4,
       "poeSupported": true,
       "poeBudgetWatts": 410,
-      "supportsBtPoE": true
+      "supportsBtPoE": true,
+      "supportSku": "SV108P36ZZNCAA",
+      "supportName": "Sophos Switch Support and Services for CS1010-8FP (36 months)"
     }
   ]
 }

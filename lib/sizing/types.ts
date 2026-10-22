@@ -190,6 +190,9 @@ export interface SwitchCatalogModel {
   poeSupported: boolean;
   poeBudgetWatts: number;
   supportsBtPoE: boolean;
+  /** Sophos Switch Support and Services — one license per switch unit. */
+  supportSku?: string;
+  supportName?: string;
 }
 
 export interface BomLineItem {

@@ -94,6 +94,8 @@ function rowToSwitchModel(row: typeof switchModels.$inferSelect): SwitchCatalogM
     poeSupported: row.poeSupported,
     poeBudgetWatts: row.poeBudgetWatts,
     supportsBtPoE: row.supportsBtPoE,
+    supportSku: row.supportSku ?? undefined,
+    supportName: row.supportName ?? undefined,
   };
 }
 
@@ -323,12 +325,18 @@ export async function upsertSwitchModel(model: SwitchCatalogModel): Promise<void
     return;
   }
 
+  const row = {
+    ...model,
+    supportSku: model.supportSku?.trim() || null,
+    supportName: model.supportName?.trim() || null,
+    updatedAt: new Date(),
+  };
   await getDb()
     .insert(switchModels)
-    .values({ ...model, updatedAt: new Date() })
+    .values(row)
     .onConflictDoUpdate({
       target: switchModels.id,
-      set: { ...model, updatedAt: new Date() },
+      set: row,
     });
 }
 

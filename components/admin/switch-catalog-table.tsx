@@ -32,6 +32,8 @@ function emptyModel(): SwitchCatalogModel {
     poeSupported: false,
     poeBudgetWatts: 0,
     supportsBtPoE: false,
+    supportSku: "",
+    supportName: "",
   };
 }
 
@@ -184,6 +186,27 @@ function ModelEditor({
           />
           Supports 60W (BT) PoE
         </label>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <Label className="text-xs">Support SKU</Label>
+          <Input
+            value={draft.supportSku ?? ""}
+            onChange={(e) => set("supportSku", e.target.value)}
+            placeholder="e.g. SV224F36ZZNCAA"
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Support name</Label>
+          <Input
+            value={draft.supportName ?? ""}
+            onChange={(e) => set("supportName", e.target.value)}
+            placeholder="Sophos Switch Support and Services…"
+            className="mt-1"
+          />
+        </div>
       </div>
 
       {error && <p className="text-destructive text-sm">{error}</p>}

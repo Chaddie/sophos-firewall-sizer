@@ -255,6 +255,9 @@ export const switchModels = pgTable("switch_models", {
   poeSupported: boolean("poe_supported").notNull(),
   poeBudgetWatts: integer("poe_budget_watts").notNull(),
   supportsBtPoE: boolean("supports_bt_poe").notNull(),
+  /** Sophos Switch Support and Services SKU (one per hardware unit). */
+  supportSku: text("support_sku"),
+  supportName: text("support_name"),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
