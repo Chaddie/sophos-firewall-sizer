@@ -6,7 +6,7 @@ import { demoStore, isDemoMode } from "@/lib/db/demo-store";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-export async function POST() {
+export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id || !session.user.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -31,11 +31,14 @@ export async function POST() {
     name = user.name;
   }
 
-  const options = await createRegistrationOptions({
-    id: session.user.id,
-    email: session.user.email,
-    name,
-  });
+  const options = await createRegistrationOptions(
+    {
+      id: session.user.id,
+      email: session.user.email,
+      name,
+    },
+    request,
+  );
 
   return NextResponse.json(options);
 }

@@ -141,12 +141,15 @@ export async function getPasskeysForUser(userId: string) {
   }));
 }
 
-export async function createRegistrationOptions(user: {
-  id: string;
-  email: string;
-  name: string;
-}) {
-  const { rpID, rpName } = getWebAuthnConfig();
+export async function createRegistrationOptions(
+  user: {
+    id: string;
+    email: string;
+    name: string;
+  },
+  request?: Request,
+) {
+  const { rpID, rpName } = getWebAuthnConfig(request);
   const existing = await listPasskeysForUser(user.id);
 
   const options = await generateRegistrationOptions({
@@ -182,8 +185,9 @@ export async function verifyAndStoreRegistration(
   userId: string,
   response: RegistrationResponseJSON,
   deviceName?: string,
+  request?: Request,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { rpID, origin } = getWebAuthnConfig();
+  const { rpID, expectedOrigins } = getWebAuthnConfig(request);
 
   let expectedChallenge: string;
   try {
@@ -202,7 +206,7 @@ export async function verifyAndStoreRegistration(
     verification = await verifyRegistrationResponse({
       response,
       expectedChallenge,
-      expectedOrigin: origin,
+      expectedOrigin: expectedOrigins,
       expectedRPID: rpID,
     });
   } catch (err) {
@@ -249,8 +253,11 @@ export async function verifyAndStoreRegistration(
   return { ok: true };
 }
 
-export async function createAuthenticationOptions(email?: string) {
-  const { rpID } = getWebAuthnConfig();
+export async function createAuthenticationOptions(
+  email?: string,
+  request?: Request,
+) {
+  const { rpID } = getWebAuthnConfig(request);
   let allowCredentials:
     | {
         id: Uint8Array;
@@ -318,8 +325,9 @@ export async function createAuthenticationOptions(email?: string) {
 
 export async function verifyAuthenticationAndIssueTicket(
   response: AuthenticationResponseJSON,
+  request?: Request,
 ): Promise<{ ok: true; ticket: string } | { ok: false; error: string }> {
-  const { rpID, origin } = getWebAuthnConfig();
+  const { rpID, expectedOrigins } = getWebAuthnConfig(request);
 
   let expectedChallenge: string;
   try {
@@ -364,7 +372,7 @@ export async function verifyAuthenticationAndIssueTicket(
     verification = await verifyAuthenticationResponse({
       response,
       expectedChallenge,
-      expectedOrigin: origin,
+      expectedOrigin: expectedOrigins,
       expectedRPID: rpID,
       authenticator: {
         credentialID: fromBase64Url(passkeyRow.credentialId),

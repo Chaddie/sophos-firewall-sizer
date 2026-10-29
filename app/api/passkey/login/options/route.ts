@@ -3,6 +3,6 @@ import { createAuthenticationOptions } from "@/lib/auth/passkeys";
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { email?: string };
-  const options = await createAuthenticationOptions(body.email);
+  const options = await createAuthenticationOptions(body.email, request);
   return NextResponse.json(options);
 }

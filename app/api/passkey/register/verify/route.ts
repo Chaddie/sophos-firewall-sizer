@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     session.user.id,
     body.response,
     body.deviceName,
+    request,
   );
 
   if (!result.ok) {

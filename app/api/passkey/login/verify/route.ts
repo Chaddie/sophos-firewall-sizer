@@ -11,7 +11,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing response" }, { status: 400 });
   }
 
-  const result = await verifyAuthenticationAndIssueTicket(body.response);
+  const result = await verifyAuthenticationAndIssueTicket(
+    body.response,
+    request,
+  );
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }

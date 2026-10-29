@@ -106,8 +106,8 @@ Open [http://localhost:3000](http://localhost:3000), sign in, and create a sizin
 |----------|-------|
 | `DATABASE_URL` | Neon connection string |
 | `AUTH_SECRET` | Production secret |
-| `AUTH_URL` | `https://your-domain.vercel.app` |
-| `NEXT_PUBLIC_APP_URL` | `https://your-domain.vercel.app` |
+| `AUTH_URL` | Stable public URL, e.g. `https://sophos-firewall-sizer.vercel.app` (not the unique `*-abc123-*.vercel.app` deploy host) |
+| `NEXT_PUBLIC_APP_URL` | Same as `AUTH_URL` |
 | `BLOB_READ_WRITE_TOKEN` | Set automatically if you connected Blob storage above |
 
 3. Deploy, then run migrations and seed against production:
@@ -121,8 +121,9 @@ DATABASE_URL="your-neon-url" npm run db:seed-catalog
 ### Custom domain
 
 1. Add your domain in Vercel → Project → Settings → Domains
-2. Update `AUTH_URL` and `NEXT_PUBLIC_APP_URL` to your custom domain
-3. Redeploy
+2. Update `AUTH_URL` and `NEXT_PUBLIC_APP_URL` to your custom domain (exact `https://` host users type in the browser — `www` vs apex must match)
+3. Redeploy (required so Auth.js callbacks and share links use the new host)
+4. Passkeys are bound to hostname: sign in with password/SSO, then **Profile → Add passkey** on the new domain (old-domain passkeys will not work)
 
 Example vanity URL: `https://sizer.yourcompany.com/r/acme-corp-jul2026`
 
