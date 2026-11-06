@@ -1,4 +1,4 @@
-import { getAppUrl } from "@/lib/app-url";
+import { getAppUrl, PRODUCTION_APP_ORIGIN } from "@/lib/app-url";
 
 function tryOrigin(value: string | null | undefined): string | null {
   if (!value?.trim()) return null;
@@ -23,22 +23,19 @@ function originFromHost(
   return tryOrigin(`${proto}://${h}`);
 }
 
-/** Stable app origins that may appear on Vercel (alias vs unique deployment). */
+/** Origins we always accept for WebAuthn on this project. */
 function configuredOrigins(): string[] {
   const out: string[] = [];
   const add = (o: string | null) => {
     if (o && !out.includes(o)) out.push(o);
   };
+  add(PRODUCTION_APP_ORIGIN);
   add(tryOrigin(process.env.NEXT_PUBLIC_APP_URL));
   add(tryOrigin(process.env.AUTH_URL));
+  add(tryOrigin(getAppUrl()));
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
     add(tryOrigin(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`));
   }
-  // Project alias (e.g. sophos-firewall-sizer.vercel.app) — not the unique deploy host.
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    /* already added */
-  }
-  add(tryOrigin(getAppUrl()));
   if (process.env.VERCEL_URL) {
     add(tryOrigin(`https://${process.env.VERCEL_URL}`));
   }
@@ -47,8 +44,7 @@ function configuredOrigins(): string[] {
 
 /**
  * Prefer the browser Origin so passkeys match the host the user is on.
- * Vercel often exposes the unique deployment hostname via Host / VERCEL_URL
- * while users visit the stable *.vercel.app alias — Origin is the source of truth.
+ * Fall back to the stable Vercel project alias (not a unique deploy host).
  */
 export function resolveRequestOrigin(request?: Request): string {
   if (request) {
@@ -71,13 +67,7 @@ export function resolveRequestOrigin(request?: Request): string {
     if (fromHost) return fromHost;
   }
 
-  return (
-    tryOrigin(process.env.NEXT_PUBLIC_APP_URL) ||
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : null) ||
-    getAppUrl()
-  );
+  return getAppUrl();
 }
 
 export function getWebAuthnConfig(request?: Request) {
@@ -87,12 +77,20 @@ export function getWebAuthnConfig(request?: Request) {
     (o, i, arr) => arr.indexOf(o) === i,
   );
 
+  // rpID must be the hostname of the page the user is on. If the browser is on
+  // the stable alias, never use a custom domain or unique deploy host as rpID.
+  let rpID = url.hostname;
+  if (
+    primary === PRODUCTION_APP_ORIGIN ||
+    url.hostname === "sophos-firewall-sizer.vercel.app"
+  ) {
+    rpID = "sophos-firewall-sizer.vercel.app";
+  }
+
   return {
-    /** Hostname for PublicKeyCredential options — must match the page the user is on. */
-    rpID: url.hostname,
+    rpID,
     rpName: "Sophos Hardware Sizing",
     origin: primary,
-    /** Accept alias + unique deploy host so Vercel origin checks don't flap. */
     expectedOrigins,
   };
 }
