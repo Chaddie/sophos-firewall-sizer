@@ -225,7 +225,6 @@ function siteReviewSections(site: SiteFormState) {
         { label: "Floor plan notes", value: w.floorPlanNotes || "—" },
         { label: "Total users", value: w.totalUsers || "—" },
         { label: "Users per AP", value: w.usersPerAp || "—" },
-        { label: "SSIDs to configure", value: w.ssidCount || "—" },
         {
           label: "Design goal",
           value: WIRELESS_DESIGN_GOAL_LABELS[w.designGoal],
@@ -499,17 +498,6 @@ export function SizingWizard({
         stepErrors[`sites.${index}.totalUsers`] = ["Required"];
       if (!w.usersPerAp || Number(w.usersPerAp) < 1)
         stepErrors[`sites.${index}.usersPerAp`] = ["Required"];
-      const ssidCount = Number(w.ssidCount);
-      if (
-        !Number.isInteger(ssidCount) ||
-        ssidCount < 1 ||
-        ssidCount > 32 ||
-        w.ssidCount.trim() === ""
-      ) {
-        stepErrors[`sites.${index}.ssidCount`] = [
-          "Enter a whole number from 1 to 32",
-        ];
-      }
       if (w.designGoal !== "capacity" && w.designGoal !== "coverage") {
         stepErrors[`sites.${index}.designGoal`] = ["Required"];
       }
@@ -1091,8 +1079,6 @@ export function SizingWizard({
                             errors[`sites.${safeConfigureIndex}.totalUsers`],
                           usersPerAp:
                             errors[`sites.${safeConfigureIndex}.usersPerAp`],
-                          ssidCount:
-                            errors[`sites.${safeConfigureIndex}.ssidCount`],
                         }}
                       />
                     </div>
