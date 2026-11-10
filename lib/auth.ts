@@ -20,6 +20,9 @@ import {
 import { resolveSsoUser } from "@/lib/auth/sso-users";
 import { consumePartnerMagicLink } from "@/lib/auth/partner-magic-link";
 import { consumePasskeyLoginTicket } from "@/lib/auth/passkeys";
+import { normalizeAuthEnvUrls } from "@/lib/env-url";
+
+normalizeAuthEnvUrls();
 
 function isPasswordlessProvider(provider?: string | null): boolean {
   return (

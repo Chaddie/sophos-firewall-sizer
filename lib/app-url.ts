@@ -1,3 +1,7 @@
+import { ensureAbsoluteUrl, normalizeAuthEnvUrls } from "@/lib/env-url";
+
+normalizeAuthEnvUrls();
+
 /**
  * Stable Vercel project alias. Prefer this over VERCEL_PROJECT_PRODUCTION_URL,
  * which switches to a custom domain once one is attached and breaks passkeys /
@@ -24,9 +28,8 @@ function isEphemeralVercelDeployHost(url: string): boolean {
 }
 
 export function getAppUrl() {
-  const configured = process.env.NEXT_PUBLIC_APP_URL
-    ? stripTrailingSlash(process.env.NEXT_PUBLIC_APP_URL)
-    : "";
+  const configured =
+    ensureAbsoluteUrl(process.env.NEXT_PUBLIC_APP_URL) ?? "";
 
   // Local / explicit localhost always wins.
   if (configured.includes("localhost") || configured.includes("127.0.0.1")) {
