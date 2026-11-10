@@ -12,7 +12,9 @@ const inter = Inter({
 const lexendExa = Lexend_Exa({
   variable: "--font-lexend-exa",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  // Single weight avoids a Turbopack next/font bug on Vercel
+  // ("queries have exactly one entry" with multi-weight arrays).
+  weight: "400",
 });
 
 export const metadata: Metadata = {
