@@ -225,6 +225,7 @@ function siteReviewSections(site: SiteFormState) {
         { label: "Floor plan notes", value: w.floorPlanNotes || "—" },
         { label: "Total users", value: w.totalUsers || "—" },
         { label: "Users per AP", value: w.usersPerAp || "—" },
+        { label: "SSIDs to configure", value: w.ssidCount || "—" },
         {
           label: "Design goal",
           value: WIRELESS_DESIGN_GOAL_LABELS[w.designGoal],
@@ -498,6 +499,17 @@ export function SizingWizard({
         stepErrors[`sites.${index}.totalUsers`] = ["Required"];
       if (!w.usersPerAp || Number(w.usersPerAp) < 1)
         stepErrors[`sites.${index}.usersPerAp`] = ["Required"];
+      const ssidCount = Number(w.ssidCount);
+      if (
+        !Number.isInteger(ssidCount) ||
+        ssidCount < 1 ||
+        ssidCount > 32 ||
+        w.ssidCount.trim() === ""
+      ) {
+        stepErrors[`sites.${index}.ssidCount`] = [
+          "Enter a whole number from 1 to 32",
+        ];
+      }
       if (w.designGoal !== "capacity" && w.designGoal !== "coverage") {
         stepErrors[`sites.${index}.designGoal`] = ["Required"];
       }
@@ -745,16 +757,6 @@ export function SizingWizard({
                     ? `Sizing request for ${label}`
                     : "Firewall, switch, and wireless sizing across your sites"}
             </p>
-            {!isInternal && !isCorrection && (
-              <a
-                href="/guides/customer-guide.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block text-xs font-medium text-[var(--sophos-blue)] underline underline-offset-2 hover:text-[var(--sophos-navy)]"
-              >
-                Need help? Download the guide (PDF)
-              </a>
-            )}
           </div>
 
           <div className="space-y-2">
@@ -1089,6 +1091,8 @@ export function SizingWizard({
                             errors[`sites.${safeConfigureIndex}.totalUsers`],
                           usersPerAp:
                             errors[`sites.${safeConfigureIndex}.usersPerAp`],
+                          ssidCount:
+                            errors[`sites.${safeConfigureIndex}.ssidCount`],
                         }}
                       />
                     </div>

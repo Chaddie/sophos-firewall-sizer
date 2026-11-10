@@ -64,6 +64,11 @@ export default async function HomePage() {
                 recommendations on your dashboard — no spreadsheet
                 back-and-forth.
               </p>
+              <p className="text-sm leading-relaxed text-[var(--sophos-grey-4)]">
+                Not an official Sophos product. Built by a Sales Engineering
+                team member as an experimental scoping tool for possible future
+                use.
+              </p>
             </div>
 
             <div className="flex flex-col justify-center gap-3 sm:flex-row">

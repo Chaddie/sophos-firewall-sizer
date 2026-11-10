@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { ChevronDown } from "lucide-react";
 import { AppHeader, AppHeaderNavLink } from "@/components/brand/app-header";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { Button } from "@/components/ui/button";
@@ -68,30 +67,6 @@ export function DashboardNavClient({
               Catalog admin
             </AppHeaderNavLink>
           )}
-          <details className="relative">
-            <summary className="flex cursor-pointer list-none items-center gap-1 text-sm text-white/75 transition-colors hover:text-white [&::-webkit-details-marker]:hidden">
-              Guides
-              <ChevronDown className="size-3.5 opacity-80" aria-hidden />
-            </summary>
-            <div className="absolute top-full left-0 z-50 mt-2 min-w-[11rem] rounded-md border border-[var(--sophos-grey-2)] bg-white py-1 shadow-sm">
-              <a
-                href="/guides/when-to-use-sizer.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block px-3 py-2 text-sm text-[var(--sophos-navy)] hover:bg-[var(--sophos-grey-1)]"
-              >
-                When to use
-              </a>
-              <a
-                href="/guides/account-manager-guide.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block px-3 py-2 text-sm text-[var(--sophos-navy)] hover:bg-[var(--sophos-grey-1)]"
-              >
-                User guide
-              </a>
-            </div>
-          </details>
         </nav>
       }
       actions={

@@ -17,6 +17,11 @@ export default function LoginPage() {
               {sophosBrand.tagline}
             </p>
             <h1 className="font-heading mt-2 text-3xl">Presales sign in</h1>
+            <p className="mt-3 text-xs leading-relaxed text-[var(--sophos-grey-4)]">
+              Unofficial project by a Sales Engineering team member — not
+              affiliated with Sophos officially. Intended as an experimental
+              scoping tool.
+            </p>
           </div>
           <Suspense>
             <LoginForm authConfig={authConfig} />
