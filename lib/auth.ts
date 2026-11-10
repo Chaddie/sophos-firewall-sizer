@@ -4,6 +4,7 @@ import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import type { Provider } from "next-auth/providers";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
+import { authConfig } from "@/lib/auth.config";
 import { getDb } from "@/lib/db";
 import { demoStore, isDemoMode } from "@/lib/db/demo-store";
 import { ensureDemoSeed } from "@/lib/db/demo-seed";
@@ -158,15 +159,10 @@ function buildProviders(): Provider[] {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   providers: buildProviders(),
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  },
-  trustHost: true,
   callbacks: {
+    ...authConfig.callbacks,
     async signIn({ user, account }) {
       if (!account || isPasswordlessProvider(account.provider)) {
         return true;
@@ -212,22 +208,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       // Refresh role from DB so role changes (e.g. promote to admin) apply without a full re-login.
       if (token.id && !isDemoMode()) {
-        const [row] = await getDb()
-          .select({ role: users.role })
-          .from(users)
-          .where(eq(users.id, token.id as string))
-          .limit(1);
-        if (row) token.role = row.role as UserRole;
+        try {
+          const [row] = await getDb()
+            .select({ role: users.role })
+            .from(users)
+            .where(eq(users.id, token.id as string))
+            .limit(1);
+          if (row) token.role = row.role as UserRole;
+        } catch {
+          // Keep the role already on the token if the DB is unreachable.
+        }
       }
 
       return token;
-    },
-    async session({ session, token }) {
-      if (session.user && token.id) {
-        session.user.id = token.id as string;
-        session.user.role = (token.role as UserRole) ?? "account_manager";
-      }
-      return session;
     },
   },
 });

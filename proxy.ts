@@ -1,5 +1,12 @@
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
+import { authConfig } from "@/lib/auth.config";
+
+/**
+ * Next.js 16 Proxy (formerly middleware). Uses the edge-safe Auth.js config
+ * so Node-only deps (bcrypt, Drizzle, WebAuthn) are not bundled here.
+ */
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
