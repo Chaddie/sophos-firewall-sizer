@@ -1,0 +1,129 @@
+import { asc, count, inArray } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+import { isAdmin } from "@/lib/auth-utils";
+import { getDb } from "@/lib/db";
+import { demoStore, isDemoMode } from "@/lib/db/demo-store";
+import { ensureDemoSeed } from "@/lib/db/demo-seed";
+import { passkeys, users } from "@/lib/db/schema";
+import type { UserRole } from "@/lib/sizing/types";
+
+export type AdminUserRow = {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  createdAt: Date | null;
+  hasPassword: boolean;
+  passkeyCount: number;
+  sponsoredByEmail: string | null;
+};
+
+export function roleDisplayLabel(role: UserRole | string): string {
+  switch (role) {
+    case "admin":
+      return "Admin";
+    case "sales_engineer":
+      return "Sales engineer";
+    case "account_manager":
+      return "Account manager";
+    case "partner":
+      return "Partner";
+    default:
+      return role;
+  }
+}
+
+export async function requireAdminSession() {
+  const session = await auth();
+  if (!session?.user?.id || !isAdmin(session.user.role)) {
+    return null;
+  }
+  return session;
+}
+
+/** All accounts that can sign in (password, SSO-provisioned, partner magic link, passkey). */
+export async function listUsersForAdmin(): Promise<AdminUserRow[]> {
+  if (isDemoMode()) {
+    await ensureDemoSeed();
+    const all = await demoStore.users.listByRoles([
+      "admin",
+      "sales_engineer",
+      "account_manager",
+      "partner",
+    ]);
+    const byId = new Map(all.map((u) => [u.id, u]));
+    const rows: AdminUserRow[] = [];
+    for (const u of all) {
+      const passkeyRows = await demoStore.passkeys.listByUser(u.id);
+      const sponsor = u.sponsoredById
+        ? byId.get(u.sponsoredById) ?? null
+        : null;
+      rows.push({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        createdAt: null,
+        hasPassword: Boolean(u.passwordHash),
+        passkeyCount: passkeyRows.length,
+        sponsoredByEmail: sponsor?.email ?? null,
+      });
+    }
+    return rows.sort((a, b) => a.email.localeCompare(b.email));
+  }
+
+  const db = getDb();
+  const userRows = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      role: users.role,
+      createdAt: users.createdAt,
+      passwordHash: users.passwordHash,
+      sponsoredById: users.sponsoredById,
+    })
+    .from(users)
+    .orderBy(asc(users.email));
+
+  const passkeyCounts = await db
+    .select({
+      userId: passkeys.userId,
+      n: count(passkeys.id),
+    })
+    .from(passkeys)
+    .groupBy(passkeys.userId);
+
+  const passkeyByUser = new Map(
+    passkeyCounts.map((r) => [r.userId, Number(r.n)]),
+  );
+
+  const sponsorIds = [
+    ...new Set(
+      userRows
+        .map((u) => u.sponsoredById)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const sponsorEmails = new Map<string, string>();
+  if (sponsorIds.length > 0) {
+    const sponsors = await db
+      .select({ id: users.id, email: users.email })
+      .from(users)
+      .where(inArray(users.id, sponsorIds));
+    for (const s of sponsors) sponsorEmails.set(s.id, s.email);
+  }
+
+  return userRows.map((u) => ({
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    role: u.role as UserRole,
+    createdAt: u.createdAt,
+    hasPassword: Boolean(u.passwordHash),
+    passkeyCount: passkeyByUser.get(u.id) ?? 0,
+    sponsoredByEmail: u.sponsoredById
+      ? (sponsorEmails.get(u.sponsoredById) ?? null)
+      : null,
+  }));
+}

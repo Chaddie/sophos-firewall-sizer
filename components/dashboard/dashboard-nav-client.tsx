@@ -63,9 +63,14 @@ export function DashboardNavClient({
             </>
           )}
           {showCatalogAdmin && (
-            <AppHeaderNavLink href="/dashboard/admin/catalog">
-              Catalog admin
-            </AppHeaderNavLink>
+            <>
+              <AppHeaderNavLink href="/dashboard/admin/users">
+                Users
+              </AppHeaderNavLink>
+              <AppHeaderNavLink href="/dashboard/admin/catalog">
+                Catalog admin
+              </AppHeaderNavLink>
+            </>
           )}
         </nav>
       }
