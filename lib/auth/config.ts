@@ -20,11 +20,49 @@ export function isCredentialsEnabled(): boolean {
   return envFlag(process.env.AUTH_ALLOW_CREDENTIALS, true);
 }
 
+/**
+ * Optional tenant-scoped issuer. Prefer AUTH_MICROSOFT_ENTRA_ID_ISSUER; or set
+ * AUTH_MICROSOFT_ENTRA_ID_TENANT_ID and we build the v2.0 issuer URL.
+ * If neither is set, Auth.js defaults to the "common" multi-tenant endpoint.
+ */
+export function getMicrosoftEntraIssuer(): string | undefined {
+  const issuer = process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER?.trim();
+  if (issuer) return issuer.replace(/\/+$/, "");
+
+  const tenant = process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID?.trim();
+  if (tenant) {
+    return `https://login.microsoftonline.com/${tenant}/v2.0`;
+  }
+  return undefined;
+}
+
 export function isMicrosoftEntraConfigured(): boolean {
   return Boolean(
-    process.env.AUTH_MICROSOFT_ENTRA_ID_ID &&
-      process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
+    process.env.AUTH_MICROSOFT_ENTRA_ID_ID?.trim() &&
+      process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET?.trim(),
   );
+}
+
+/** Values admins need when registering the Entra app (safe to show in UI). */
+export function getMicrosoftEntraSetupInfo(appOrigin: string): {
+  configured: boolean;
+  callbackUrl: string;
+  issuerConfigured: boolean;
+  issuer: string | null;
+  allowedDomains: string[];
+  defaultRole: "account_manager" | "sales_engineer";
+  seEmailCount: number;
+} {
+  const origin = appOrigin.replace(/\/$/, "");
+  return {
+    configured: isMicrosoftEntraConfigured(),
+    callbackUrl: `${origin}/api/auth/callback/microsoft-entra-id`,
+    issuerConfigured: Boolean(getMicrosoftEntraIssuer()),
+    issuer: getMicrosoftEntraIssuer() ?? null,
+    allowedDomains: getSsoAllowedDomains(),
+    defaultRole: getSsoDefaultRole(),
+    seEmailCount: getSsoSeEmails().size,
+  };
 }
 
 export function isOidcConfigured(): boolean {

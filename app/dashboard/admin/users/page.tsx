@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { CreateUserForm } from "@/components/admin/create-user-form";
+import { EntraSsoSetupCard } from "@/components/admin/entra-sso-setup-card";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import {
   Card,
@@ -13,7 +14,9 @@ import {
   listUsersForAdmin,
   roleDisplayLabel,
 } from "@/lib/admin-users";
+import { getMicrosoftEntraSetupInfo } from "@/lib/auth/config";
 import { canAccessCatalogAdmin, hasSePrivileges } from "@/lib/auth-utils";
+import { getAppUrl } from "@/lib/app-url";
 
 function formatDate(value: Date | null): string {
   if (!value) return "—";
@@ -39,6 +42,7 @@ export default async function AdminUsersPage() {
   if (!canAccessCatalogAdmin(role)) redirect("/dashboard");
 
   const users = await listUsersForAdmin();
+  const entraSetup = getMicrosoftEntraSetupInfo(getAppUrl());
 
   return (
     <div className="flex min-h-full flex-col">
@@ -55,6 +59,8 @@ export default async function AdminUsersPage() {
             Accounts that can sign in to this app ({users.length}).
           </p>
         </div>
+
+        <EntraSsoSetupCard info={entraSetup} />
 
         <CreateUserForm />
 

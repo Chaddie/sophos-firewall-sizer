@@ -11,6 +11,7 @@ import { ensureDemoSeed } from "@/lib/db/demo-seed";
 import { users } from "@/lib/db/schema";
 import type { UserRole } from "@/lib/sizing/types";
 import {
+  getMicrosoftEntraIssuer,
   getPublicAuthConfig,
   isCredentialsEnabled,
   isEmailAllowedForSso,
@@ -135,11 +136,13 @@ function buildProviders(): Provider[] {
   }
 
   if (isMicrosoftEntraConfigured()) {
+    const issuer = getMicrosoftEntraIssuer();
     providers.push(
       MicrosoftEntraID({
         clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID!,
         clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET!,
-        issuer: process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER,
+        ...(issuer ? { issuer } : {}),
+        // Same email can use password today and Microsoft later (or both).
         allowDangerousEmailAccountLinking: true,
       }),
     );

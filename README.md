@@ -110,6 +110,18 @@ Open [http://localhost:3000](http://localhost:3000), sign in, and create a sizin
 | `NEXT_PUBLIC_APP_URL` | Same as `AUTH_URL` |
 | `BLOB_READ_WRITE_TOKEN` | Set automatically if you connected Blob storage above |
 
+Optional **Microsoft Entra ID SSO** (button appears on `/login` when set):
+
+| Variable | Value |
+|----------|-------|
+| `AUTH_MICROSOFT_ENTRA_ID_ID` | Application (client) ID |
+| `AUTH_MICROSOFT_ENTRA_ID_SECRET` | Client secret value |
+| `AUTH_MICROSOFT_ENTRA_ID_ISSUER` | `https://login.microsoftonline.com/<TENANT_ID>/v2.0` |
+| `AUTH_SSO_ALLOWED_DOMAINS` | e.g. `sophos.com` |
+
+Redirect URI in Entra: `{AUTH_URL}/api/auth/callback/microsoft-entra-id`.  
+Full steps: [`docs/entra-sso.md`](docs/entra-sso.md). Admins also see a setup card on **Users**.
+
 3. Deploy, then run migrations and seed against production:
 
 ```bash
