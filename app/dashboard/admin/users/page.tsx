@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { CreateUserForm } from "@/components/admin/create-user-form";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import {
   Card,
@@ -54,6 +55,8 @@ export default async function AdminUsersPage() {
             Accounts that can sign in to this app ({users.length}).
           </p>
         </div>
+
+        <CreateUserForm />
 
         <Card className="border-[var(--sophos-grey-2)] shadow-sm">
           <CardHeader>
